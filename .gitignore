@@ -1,4 +1,4 @@
-# Local design refs / private brief — do not publish
+﻿# Local / private
 screens/
 Swiggy_api.docx
 goal.md
@@ -10,6 +10,12 @@ Desktop.ini
 .idea/
 .vscode/
 
-# Temp extract helpers
+# Temp
 _extract_docx.ps1
 _swiggy_api_extract.txt
+_strip_coauthor.sh
+
+# Node
+node_modules/
+frontend/node_modules/
+frontend/dist/

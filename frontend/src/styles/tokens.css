@@ -1,0 +1,125 @@
+/* nomnom design tokens — matched to screen mockups */
+:root {
+  --color-primary: #e91e63;
+  --color-primary-hover: #d81b60;
+  --color-primary-soft: #fce4ec;
+  --color-primary-tint: #fdf2f5;
+  --color-primary-deep: #c2185b;
+
+  --color-surface: #ffffff;
+  --color-bg: #fafafa;
+  --color-bg-warm: #f7f7f8;
+  --color-border: #e8e8ea;
+  --color-border-strong: #d0d0d4;
+
+  --color-text: #1a1a1a;
+  --color-text-secondary: #5c5c5c;
+  --color-text-muted: #8a8a8a;
+  --color-text-inverse: #ffffff;
+
+  --color-footer: #242d35;
+  --color-footer-muted: #9aa3ab;
+  --color-success: #2e7d32;
+  --color-veg: #068a26;
+  --color-nonveg: #d32f2f;
+  --color-offer: #e65100;
+  --color-star: #e91e63;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-full: 999px;
+
+  --shadow-sm: 0 1px 2px rgba(26, 26, 26, 0.04);
+  --shadow-md: 0 4px 16px rgba(26, 26, 26, 0.06);
+  --shadow-lg: 0 12px 40px rgba(26, 26, 26, 0.1);
+  --shadow-card: 0 2px 12px rgba(26, 26, 26, 0.06);
+
+  --font: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 80px;
+  --space-10: 96px;
+
+  --max-width: 1180px;
+  --header-h: 72px;
+  --promo-h: 40px;
+  --tab-h: 64px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  --touch: 44px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font);
+  color: var(--color-text);
+  background: var(--color-surface);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  background: none;
+}
+
+ul,
+ol {
+  list-style: none;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
