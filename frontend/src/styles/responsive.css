@@ -1,0 +1,37 @@
+/**
+ * One site, two compositions — same URLs, no redirect.
+ *  .only-desktop  → 768px and up
+ *  .only-mobile   → below 768px
+ */
+
+.only-mobile {
+  display: none !important;
+}
+
+@media (max-width: 767px) {
+  .only-desktop {
+    display: none !important;
+  }
+
+  .only-mobile {
+    display: block !important;
+  }
+
+  /* Phone UI is full-bleed (no device frame) */
+  body:has(.only-mobile:not([hidden])) {
+    background: #fff;
+  }
+
+  .m-page--landing,
+  .m-page--discovery {
+    max-width: none;
+  }
+
+  .m-page--discovery .mobile-tabbar {
+    left: 0;
+    right: 0;
+    transform: none;
+    max-width: none;
+    width: 100%;
+  }
+}

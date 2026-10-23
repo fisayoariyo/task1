@@ -1,0 +1,22 @@
+@import "tailwindcss";
+@import "./styles/tokens.css";
+@import "./styles/components.css";
+@import "./styles/web.css";
+@import "./styles/mobile.css";
+@import "./styles/responsive.css";
+
+@theme {
+  --color-brand: #e91e63;
+  --color-brand-hover: #d81b60;
+  --font-sans: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+}

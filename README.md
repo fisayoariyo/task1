@@ -1,17 +1,51 @@
 # nomnom
 
-Food delivery UI (landing, discovery, restaurant/menu, checkout) for web and mobile layouts.
+Food delivery web app built with **React**, **Vite**, **React Router**, and **Tailwind CSS**.
+
+## Stack
+
+- React 19
+- Vite
+- React Router
+- Tailwind CSS v4
+- CSS modules / shared styles in `frontend/src/styles`
 
 ## Run
 
-Open `index.html` in a browser, or serve the folder with any static file server.
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-## Layout
+## Routes
+
+| Path | Page |
+|------|------|
+| `/` | Landing |
+| `/discovery` | Restaurants |
+| `/restaurant` | Menu |
+| `/checkout` | Checkout |
+
+## Build
+
+```bash
+cd frontend
+npm run build
+npm run preview
+```
+
+## Deploy
+
+Vercel builds `frontend/` and serves the SPA from `frontend/dist` (see root `vercel.json`).
+
+## Project layout
 
 | Path | Purpose |
 |------|---------|
-| `web/` | Desktop pages |
-| `mobile/` | Small-screen pages |
-| `css/` | Styles |
-| `js/` | Shared UI helpers and mock data |
-| `assets/` | Images |
+| `frontend/` | React app |
+| `frontend/src/pages/` | Page components |
+| `frontend/src/components/` | Shared UI |
+| `frontend/src/styles/` | Design tokens and layout CSS |
+| `frontend/public/assets/` | Static images |
+| `legacy/` | Old static prototype (not used by the app) |
