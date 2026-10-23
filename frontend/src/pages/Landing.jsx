@@ -3,16 +3,16 @@ import { Icon } from '../components/Icon'
 import { Logo } from '../components/Logo'
 import { CATEGORIES } from '../lib/data'
 
-/** Cut-out cuisine tiles (soft pink circle assets) — matches mobile landing mock */
+/** Cut-out cuisine tiles on soft pink (no SS crops — avoids seam/ghost labels) */
 const mobileCats = [
-  { name: 'Biryani', img: '/assets/cats/biryani-ss.png?v=12' },
-  { name: 'Pizza', img: '/assets/cats/pizza-ss.png?v=12' },
-  { name: 'Burgers', img: '/assets/cats/burgers-ss.png?v=12' },
-  { name: 'North Indian', img: '/assets/cats/north-ss.png?v=12' },
-  { name: 'South Indian', img: '/assets/cats/south-ss.png?v=12' },
-  { name: 'Chinese', img: '/assets/cats/chinese-ss.png?v=12' },
-  { name: 'Rolls & Wraps', img: '/assets/cats/rolls-ss.png?v=12' },
-  { name: 'Desserts', img: '/assets/cats/desserts-ss.png?v=12' },
+  { name: 'Biryani', img: '/assets/cats/biryani.png?v=13' },
+  { name: 'Pizza', img: '/assets/cats/pizza.png?v=13' },
+  { name: 'Burgers', img: '/assets/cats/burgers.png?v=13' },
+  { name: 'North Indian', img: '/assets/cats/north.png?v=13' },
+  { name: 'South Indian', img: '/assets/cats/south.png?v=13' },
+  { name: 'Chinese', img: '/assets/cats/chinese.jpg?v=13' },
+  { name: 'Rolls & Wraps', img: '/assets/cats/rolls.jpg?v=13' },
+  { name: 'Desserts', img: '/assets/cats/desserts.jpg?v=13' },
 ]
 
 export default function Landing() {
