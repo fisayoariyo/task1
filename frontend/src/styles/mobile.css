@@ -213,7 +213,8 @@
 .m-cat-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 14px 10px;
+  gap: 16px 10px;
+  align-items: start;
 }
 
 .m-cat {
@@ -224,17 +225,20 @@
   gap: 8px;
   text-decoration: none;
   color: inherit;
+  min-width: 0;
 }
 
-/* Soft pink rounded tiles — assets cropped from landing mock SS */
+/* Soft pink rounded square + cut-out food (labels are HTML only) */
 .m-cat__img {
   width: 100%;
   aspect-ratio: 1;
   border-radius: 20px;
   overflow: hidden;
   background: #fff0f3;
-  display: block;
+  display: grid;
+  place-items: center;
   padding: 0;
+  isolation: isolate;
 }
 
 .m-cat__img img {
@@ -242,6 +246,7 @@
   height: 100%;
   object-fit: cover;
   object-position: center;
+  transform: scale(1.22);
   display: block;
 }
 
@@ -251,6 +256,10 @@
   color: #1a1a2e;
   line-height: 1.25;
   letter-spacing: -0.01em;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .m-why {
