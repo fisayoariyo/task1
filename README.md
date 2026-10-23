@@ -15,5 +15,3 @@ Open `index.html` in a browser, or serve the folder with any static file server.
 | `css/` | Styles |
 | `js/` | Shared UI helpers and mock data |
 | `assets/` | Images |
-
-Project brief: see [`goal.md`](goal.md).
