@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>nomnom — Royal Biryani House</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/tokens.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/web.css" />
+  <link rel="stylesheet" href="../css/mobile.css" />
+  <link rel="stylesheet" href="../css/responsive.css" />
+</head>
+<body style="background:var(--color-bg)">
+<div class="only-desktop">
+<div class="promo-bar">
+    <span id="gift-icon"></span>
+    Welcome treat! Get ₹50 off your first order.
+  </div>
+
+  <header class="web-header">
+    <div id="logo"></div>
+    <div class="web-header__center">
+      <button class="location-pill" type="button">
+        <span class="pin" id="pin"></span>
+        Koramangala, Bengaluru
+        <span id="chev"></span>
+      </button>
+      <label class="field" style="flex:1;min-height:44px">
+        <span class="field__icon" id="search-i"></span>
+        <input type="search" placeholder="Search for restaurants, cuisines or dishes..." aria-label="Search" />
+      </label>
+    </div>
+    <div class="web-header__right">
+      <a class="btn btn--outline" href="#">Log in</a>
+      <a class="btn btn--primary" href="#">Sign up</a>
+      <a class="cart-btn" href="checkout.html" aria-label="Cart">
+        <span id="cart-i"></span>
+        <span class="cart-btn__badge" id="cart-badge">0</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="container" style="padding:0 24px">
+    <nav class="breadcrumb">
+      <a href="landing.html">Home</a> / Bengaluru / <a href="discovery.html">Restaurants</a> / Royal Biryani House
+    </nav>
+
+    <section class="rest-hero">
+      <div class="rest-hero__main">
+        <img src="https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=800&q=80" alt="Royal Biryani House" />
+        <span class="rest-hero__badge"><span id="badge-star"></span> Bestseller</span>
+      </div>
+
+      <div class="rest-hero__info">
+        <h1>Royal Biryani House</h1>
+        <p class="rest-hero__cuisines">Biryani • Mughlai • North Indian • Chinese</p>
+        <div class="rest-meta">
+          <span class="rest-meta__item"><span class="star" id="star-m"></span><strong>4.5</strong> (2.8K+ ratings)</span>
+          <span class="rest-meta__divider" aria-hidden="true"></span>
+          <span class="rest-meta__item" id="clock-m"></span>
+          <span class="rest-meta__divider" aria-hidden="true"></span>
+          <span class="rest-meta__item">₹199 for two</span>
+        </div>
+        <div class="rest-tags">
+          <span class="rest-tags__item rest-tags__item--delivery" id="tag1"></span>
+          <span class="rest-tags__item rest-tags__item--veg" id="tag2"></span>
+          <span class="rest-tags__item rest-tags__item--offer" id="tag3"></span>
+        </div>
+      </div>
+
+      <div class="rest-hero__side">
+        <div class="rest-actions">
+          <button class="m-icon-btn" type="button" aria-label="Favourite" id="heart-btn"></button>
+          <button class="m-icon-btn" type="button" aria-label="Share" id="share-btn"></button>
+        </div>
+        <div class="rest-hero__thumbs">
+          <div><img src="https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=300&q=80" alt="" /></div>
+          <div><img src="https://images.unsplash.com/photo-1630383249896-424e482df921?w=300&q=80" alt="" /></div>
+          <div><img src="https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=300&q=80" alt="" /></div>
+          <button class="rest-hero__photos" type="button">
+            <span id="photos-i"></span>
+            View photos (124)
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <nav class="rest-tabs" aria-label="Restaurant sections">
+      <a href="#" class="is-active">Order Online</a>
+      <a href="#">Reviews (2.8K+)</a>
+      <a href="#">Photos (1.2K+)</a>
+      <a href="#">About</a>
+    </nav>
+
+    <div class="menu-layout">
+      <aside class="menu-nav" aria-label="Menu categories">
+        <label class="field">
+          <span class="field__icon" id="menu-search"></span>
+          <input type="search" placeholder="Search for a dish..." aria-label="Search menu" />
+        </label>
+        <button type="button" class="is-active">Recommended <span class="menu-nav__count">6</span></button>
+        <button type="button">Biryani <span class="menu-nav__count">12</span></button>
+        <button type="button">Combos <span class="menu-nav__count">8</span></button>
+        <button type="button">Starters <span class="menu-nav__count">10</span></button>
+        <button type="button">Kebabs <span class="menu-nav__count">7</span></button>
+        <button type="button">Curries <span class="menu-nav__count">9</span></button>
+        <button type="button">Breads <span class="menu-nav__count">6</span></button>
+        <button type="button">Desserts <span class="menu-nav__count">5</span></button>
+        <button type="button">Beverages <span class="menu-nav__count">8</span></button>
+      </aside>
+
+      <section>
+        <h2 style="font-size:1.25rem;font-weight:800;margin-bottom:4px">Recommended (6)</h2>
+        <p style="color:var(--color-text-secondary);font-size:.875rem;margin-bottom:8px">Our chef’s special dishes, loved by customers.</p>
+        <div id="dishes"></div>
+      </section>
+
+      <aside class="cart-panel">
+        <div class="cart-box">
+          <h3>Your Cart</h3>
+          <div id="cart-panel-body" class="cart-empty">
+            <div class="cart-empty__art" aria-hidden="true"><i data-lucide="shopping-bag"></i></div>
+            <p>Add items to get started.</p>
+          </div>
+        </div>
+        <div class="cart-box delivery-box">
+          <h3 style="font-size:.9375rem">Delivery details</h3>
+          <p style="font-size:.8125rem;margin-bottom:12px">
+            Koramangala, Bengaluru
+            <a class="btn btn--ghost" href="#" style="display:inline;padding:0;min-height:auto">Change</a>
+          </p>
+          <dl>
+            <div><dt>Delivery</dt><dd>25–30 mins</dd></div>
+            <div><dt>Minimum order</dt><dd>₹199</dd></div>
+            <div><dt>Delivery fee</dt><dd>Free on ₹199+</dd></div>
+          </dl>
+        </div>
+        <button class="btn btn--block btn--lg btn--disabled" type="button" id="view-cart" disabled>View cart | ₹0</button>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<div class="only-mobile m-page m-page--menu" style="background:#fff">
+  <header class="m-header m-header--menu">
+    <button class="m-icon-btn" type="button" aria-label="Back" id="m-back" onclick="location.href='discovery.html'"></button>
+    <div class="m-header__brand" id="m-logo"></div>
+    <div class="m-header__actions">
+      <button class="m-icon-btn" type="button" aria-label="Search" id="m-search-btn"></button>
+      <button class="m-icon-btn" type="button" aria-label="Wishlist" id="m-heart"></button>
+      <button class="m-icon-btn" type="button" aria-label="Cart" id="m-cart-btn">
+        <span id="m-cart-i"></span>
+        <span class="m-badge" id="m-cart-badge">0</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="m-menu-hero">
+    <div class="m-menu-hero__top">
+      <div class="m-menu-hero__media">
+        <img src="https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=600&q=80" alt="Royal Biryani House" />
+        <span class="m-menu-hero__badge"><span id="m-badge-star"></span> Bestseller</span>
+        <button class="m-menu-hero__fav" type="button" aria-label="Favourite" id="m-hero-heart"></button>
+        <span class="m-menu-hero__count">1/8</span>
+      </div>
+      <div class="m-menu-hero__info">
+        <h1>Royal Biryani House</h1>
+        <p class="m-menu-hero__cuisines">Biryani • Mughlai • North Indian</p>
+        <div class="m-menu-hero__rating">
+          <span class="star" id="m-star"></span>
+          <strong>4.5</strong>
+          <span>(2.8K+ ratings)</span>
+        </div>
+        <div class="m-menu-hero__meta">
+          <span id="m-clock"></span>
+          <span class="m-menu-hero__dot">·</span>
+          <span>₹199 for two</span>
+        </div>
+        <div class="m-menu-hero__chips">
+          <span class="m-menu-chip m-menu-chip--delivery" id="m-t1"></span>
+          <span class="m-menu-chip m-menu-chip--veg" id="m-t2"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="m-menu-tabs">
+    <a href="#" class="is-active">Order Online</a>
+    <a href="#">Reviews (2.8K+)</a>
+    <a href="#">Photos (124)</a>
+    <a href="#">About</a>
+  </nav>
+
+  <div class="m-cat-pills" id="m-pills"></div>
+  <div id="m-dishes"></div>
+
+  <button class="m-cart-bar" type="button" id="m-cart-bar" hidden>
+    <span class="m-cart-bar__left">
+      <span class="m-cart-bar__icon" id="m-cart-bar-icon"></span>
+      <span class="m-cart-bar__copy">
+        <strong id="m-cart-bar-summary">0 items | ₹0</strong>
+        <small id="m-cart-bar-hint">Add items to continue</small>
+      </span>
+    </span>
+    <span class="m-cart-bar__cta">View cart <span id="m-cart-bar-arrow"></span></span>
+  </button>
+
+  <div class="sheet-backdrop" id="m-backdrop" hidden></div>
+  <div class="sheet" id="m-sheet" role="dialog" aria-modal="true" aria-labelledby="m-sheet-title" hidden>
+    <div class="sheet__handle" aria-hidden="true"></div>
+    <div class="sheet__head">
+      <h2 id="m-sheet-title">Your cart</h2>
+      <div class="sheet__head-actions">
+        <button class="sheet__clear" type="button" id="m-clear">Clear cart</button>
+        <button class="m-icon-btn" type="button" aria-label="Close cart" id="m-close-sheet"></button>
+      </div>
+    </div>
+    <div id="m-cart-lines"></div>
+    <button class="apply-coupon" type="button" id="m-coupon-row">Apply coupon</button>
+    <div class="bill-rows" id="m-bill"></div>
+    <div class="grand-bar">
+      <span>Grand total</span>
+      <span id="m-grand">₹0</span>
+    </div>
+    <a class="m-checkout-cta" href="checkout.html" id="m-proceed">
+      <span>Proceed to checkout</span>
+      <span class="m-checkout-cta__sep" aria-hidden="true"></span>
+      <span id="m-proceed-price">₹0 →</span>
+    </a>
+  </div>
+</div>
+
+  <script src="../js/shared.js"></script>
+  <script src="https://unpkg.com/lucide@0.469.0"></script>
+  <script>
+    document.getElementById("logo").innerHTML = logoHTML();
+    document.getElementById("gift-icon").innerHTML = icon("gift", 18);
+    document.getElementById("pin").innerHTML = icon("pin", 16);
+    document.getElementById("chev").innerHTML = icon("chevronDown", 14);
+    document.getElementById("search-i").innerHTML = icon("search", 18);
+    document.getElementById("cart-i").innerHTML = icon("cart", 20);
+    document.getElementById("menu-search").innerHTML = icon("search", 16);
+    document.getElementById("badge-star").innerHTML = icon("star", 11);
+    document.getElementById("heart-btn").innerHTML = icon("heart", 18);
+    document.getElementById("share-btn").innerHTML = icon("share", 18);
+    document.getElementById("star-m").innerHTML = icon("star", 14);
+    document.getElementById("clock-m").innerHTML = icon("clock", 14) + " 25–30 mins";
+    document.getElementById("photos-i").innerHTML = icon("image", 18);
+    document.getElementById("tag1").innerHTML = icon("bike", 14) + " Free delivery on orders ₹199+";
+    document.getElementById("tag2").innerHTML = icon("leaf", 14) + " Pure Veg options";
+    document.getElementById("tag3").innerHTML = icon("tag", 14) + " 20% OFF up to ₹100";
+
+    let cart = getCart();
+
+    function renderCart() {
+      const { lines, itemTotal, count } = (() => {
+        const lines = cart.map(c => {
+          const item = MENU.find(m => m.id === c.id);
+          return item ? { ...item, qty: c.qty } : null;
+        }).filter(Boolean);
+        return {
+          lines,
+          itemTotal: lines.reduce((s, l) => s + l.price * l.qty, 0),
+          count: lines.reduce((s, l) => s + l.qty, 0),
+        };
+      })();
+      document.getElementById("cart-badge").textContent = count;
+      const btn = document.getElementById("view-cart");
+      if (!count) {
+        document.getElementById("cart-panel-body").innerHTML = `
+          <div class="cart-empty">
+            <div class="cart-empty__art" aria-hidden="true"><i data-lucide="shopping-bag"></i></div>
+            <p>Add items to get started.</p>
+          </div>`;
+        if (window.lucide) lucide.createIcons();
+        btn.textContent = "View cart | ₹0";
+        btn.disabled = true;
+        btn.classList.add("btn--disabled");
+        btn.classList.remove("btn--primary");
+        syncMobileCart([], 0, 0);
+        return;
+      }
+      document.getElementById("cart-panel-body").innerHTML = lines.map(l => `
+        <div style="display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--color-border);font-size:.8125rem">
+          <span>${l.veg ? '<span class="veg-dot"></span>' : '<span class="nonveg-dot"></span>'} ${l.name} × ${l.qty}</span>
+          <strong>₹${l.price * l.qty}</strong>
+        </div>
+      `).join("") + `<p style="margin-top:12px;font-weight:800">Item total · ₹${itemTotal}</p>`;
+      btn.textContent = `View cart | ₹${itemTotal}`;
+      btn.disabled = false;
+      btn.classList.remove("btn--disabled");
+      btn.classList.add("btn--primary");
+      btn.onclick = () => { setCart(cart); location.href = "checkout.html"; };
+      syncMobileCart(lines, itemTotal, count);
+    }
+
+    function syncMobileCart(lines, itemTotal, count) {
+      const badge = document.getElementById("m-cart-badge");
+      if (badge) badge.textContent = count;
+      const bar = document.getElementById("m-cart-bar");
+      if (bar) {
+        bar.hidden = count === 0;
+        document.getElementById("m-cart-bar-summary").textContent =
+          `${count} item${count === 1 ? "" : "s"} | ₹${itemTotal}`;
+        const need = Math.max(0, 199 - itemTotal);
+        document.getElementById("m-cart-bar-hint").textContent = need
+          ? `Extra ₹${need} for free delivery`
+          : "Free delivery on this order";
+      }
+      const deliveryWas = 40;
+      const platform = 5;
+      const grand = count ? itemTotal + platform : 0;
+      document.getElementById("m-cart-lines").innerHTML = count
+        ? lines.map(l => `
+          <div class="cart-line" data-id="${l.id}">
+            <div class="cart-line__img"><img src="${l.img}" alt="" /></div>
+            <div class="cart-line__main">
+              <div class="cart-line__name">
+                ${l.veg ? '<span class="veg-dot"></span>' : '<span class="nonveg-dot"></span>'}
+                <span>${l.name}</span>
+              </div>
+              <div class="cart-line__prices">
+                <span class="price--strike">₹${l.was}</span>
+                <span class="price">₹${l.price}</span>
+                <span class="price--off price--off-pill">${l.off}</span>
+              </div>
+              <div class="cart-line__row">
+                <div class="qty qty--sheet">
+                  <button type="button" data-qty="-1" aria-label="Decrease">−</button>
+                  <span>${l.qty}</span>
+                  <button type="button" data-qty="1" aria-label="Increase">+</button>
+                </div>
+                <strong class="cart-line__sum">₹${l.price * l.qty}</strong>
+              </div>
+            </div>
+          </div>
+        `).join("")
+        : `<p class="cart-empty-msg">Add items to get started.</p>`;
+      document.getElementById("m-bill").innerHTML = count ? `
+        <div class="row"><span>Item total (${count} items)</span><span>₹${itemTotal}</span></div>
+        <div class="row"><span>Delivery fee ${icon("info", 14)}</span><span><span class="price--strike">₹${deliveryWas}</span> <span class="row--free">FREE</span></span></div>
+        <div class="row"><span>Platform fee ${icon("info", 14)}</span><span>₹${platform}</span></div>
+      ` : "";
+      document.getElementById("m-grand").textContent = `₹${grand}`;
+      document.getElementById("m-proceed-price").textContent = `₹${grand} →`;
+      document.getElementById("m-sheet-title").textContent = count
+        ? `Your cart (${count} items)`
+        : "Your cart";
+    }
+
+    function changeQty(id, delta) {
+      const line = cart.find(c => c.id === id);
+      if (!line) return;
+      line.qty += delta;
+      if (line.qty <= 0) cart = cart.filter(c => c.id !== id);
+      setCart(cart);
+      renderCart();
+    }
+
+    function addItem(id) {
+      const existing = cart.find(c => c.id === id);
+      if (existing) existing.qty += 1;
+      else cart.push({ id, qty: 1 });
+      setCart(cart);
+      renderCart();
+    }
+
+    document.getElementById("dishes").innerHTML = MENU.map(d => `
+      <article class="dish-card">
+        <div class="dish-card__img"><img src="${d.img}" alt="${d.name}" loading="lazy" /></div>
+        <div class="dish-card__body">
+          <div class="dish-card__name">
+            ${d.veg ? '<span class="veg-dot" aria-label="Veg"></span>' : '<span class="nonveg-dot" aria-label="Non-veg"></span>'}
+            ${d.name}
+            ${d.bestseller ? '<span class="badge" style="font-size:.625rem">Bestseller</span>' : ''}
+          </div>
+          <p class="dish-card__desc">${d.desc}</p>
+          <div class="dish-card__row">
+            <div class="price-row">
+              <span class="price">₹${d.price}</span>
+              <span class="price--strike">₹${d.was}</span>
+              <span class="price--off">${d.off}</span>
+            </div>
+            <button class="btn-add" type="button" data-id="${d.id}">ADD +</button>
+          </div>
+        </div>
+      </article>
+    `).join("");
+
+    document.getElementById("dishes").addEventListener("click", (e) => {
+      const btn = e.target.closest(".btn-add");
+      if (btn) addItem(btn.dataset.id);
+    });
+
+    /* Mobile composition */
+    document.getElementById("m-logo").innerHTML = logoHTML("logo--sm");
+    document.getElementById("m-back").innerHTML = icon("back", 22);
+    document.getElementById("m-search-btn").innerHTML = icon("search", 20);
+    document.getElementById("m-heart").innerHTML = icon("heart", 20);
+    document.getElementById("m-hero-heart").innerHTML = icon("heart", 16);
+    document.getElementById("m-badge-star").innerHTML = icon("star", 10);
+    document.getElementById("m-cart-i").innerHTML = icon("cart", 20);
+    document.getElementById("m-cart-bar-icon").innerHTML = icon("shoppingBag", 20);
+    document.getElementById("m-cart-bar-arrow").innerHTML = icon("chevron", 16);
+    document.getElementById("m-close-sheet").innerHTML = icon("close", 20);
+    document.getElementById("m-star").innerHTML = icon("star", 14);
+    document.getElementById("m-clock").innerHTML = icon("clock", 13) + " 25–30 mins";
+    document.getElementById("m-t1").innerHTML = icon("bike", 14) + " Free delivery on orders ₹199+";
+    document.getElementById("m-t2").innerHTML = icon("leaf", 14) + " Pure Veg options";
+    document.getElementById("m-coupon-row").innerHTML = icon("tag", 18) + " Apply coupon " + icon("chevron", 16);
+
+    const pills = ["Biryani", "Combos", "Starters", "Kebabs", "Curries", "Desserts"];
+    document.getElementById("m-pills").innerHTML = pills.map((p, i) => `
+      <button class="m-cat-pill ${i === 0 ? "is-active" : ""}" type="button">${p}</button>
+    `).join("");
+
+    const sectionMeta = {
+      Biryani: { label: "Biryani", count: 12 },
+      Combos: { label: "Combos", count: 6 },
+      Starters: { label: "Starters", count: 10 },
+      Desserts: { label: "Desserts", count: 5 },
+      Recommended: { label: "Biryani", count: 12 },
+    };
+    const byCat = {};
+    MENU.forEach((d) => {
+      const key = d.cat === "Recommended" ? "Biryani" : d.cat;
+      (byCat[key] || (byCat[key] = [])).push(d);
+    });
+    const order = ["Biryani", "Combos", "Starters", "Desserts"];
+    document.getElementById("m-dishes").innerHTML = order.filter((k) => byCat[k]?.length).map((key) => {
+      const meta = sectionMeta[key] || { label: key, count: byCat[key].length };
+      const items = byCat[key].map((d) => `
+        <article class="m-dish">
+          <div class="m-dish__img"><img src="${d.img}" alt="${d.name}" loading="lazy" /></div>
+          <div class="m-dish__body">
+            ${d.veg ? '<span class="veg-dot" aria-label="Veg"></span>' : '<span class="nonveg-dot" aria-label="Non-veg"></span>'}
+            <div class="m-dish__name">${d.name}</div>
+            <p class="m-dish__desc">${d.desc}</p>
+            <div class="m-dish__row">
+              <div class="price-row">
+                <span class="price--strike">₹${d.was}</span>
+                <span class="price">₹${d.price}</span>
+                <span class="price--off">${d.off}</span>
+              </div>
+              <button class="btn-add" type="button" data-id="${d.id}">ADD +</button>
+            </div>
+          </div>
+        </article>
+      `).join("");
+      return `
+        <section class="m-menu-section">
+          <button class="m-menu-section__head" type="button">
+            <span>${meta.label} (${meta.count} items)</span>
+            <span class="m-menu-section__chev" data-lucide-slot>${icon("chevronDown", 18)}</span>
+          </button>
+          <div class="m-menu-section__body">${items}</div>
+        </section>
+      `;
+    }).join("");
+
+    document.getElementById("m-dishes").addEventListener("click", (e) => {
+      const btn = e.target.closest(".btn-add");
+      if (btn) addItem(btn.dataset.id);
+    });
+
+    const sheet = document.getElementById("m-sheet");
+    const backdrop = document.getElementById("m-backdrop");
+    function openSheet() { sheet.hidden = false; backdrop.hidden = false; }
+    function closeSheet() { sheet.hidden = true; backdrop.hidden = true; }
+    document.getElementById("m-cart-btn").addEventListener("click", openSheet);
+    document.getElementById("m-cart-bar").addEventListener("click", openSheet);
+    document.getElementById("m-close-sheet").addEventListener("click", closeSheet);
+    backdrop.addEventListener("click", closeSheet);
+    document.getElementById("m-clear").addEventListener("click", () => {
+      cart = [];
+      setCart(cart);
+      renderCart();
+      closeSheet();
+    });
+    document.getElementById("m-cart-lines").addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-qty]");
+      if (!btn) return;
+      const row = btn.closest(".cart-line");
+      if (!row) return;
+      changeQty(row.dataset.id, Number(btn.dataset.qty));
+    });
+
+    /* Mobile mock: Chicken Dum + Gulab = ₹339 → grand ₹344; desktop empty */
+    cart = window.matchMedia("(max-width: 767px)").matches
+      ? CART_DEFAULT.map((c) => ({ ...c }))
+      : [];
+    setCart(cart);
+    renderCart();
+    if (window.matchMedia("(max-width: 767px)").matches && cart.length) openSheet();
+    if (window.lucide) lucide.createIcons();
+  </script>
+</body>
+</html>

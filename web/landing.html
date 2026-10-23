@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>nomnom — Food Delivery Near Me</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/tokens.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/web.css" />
+  <link rel="stylesheet" href="../css/mobile.css" />
+  <link rel="stylesheet" href="../css/responsive.css" />
+</head>
+<body>
+<div class="only-desktop">
+  <div class="promo-bar promo-bar--landing">
+    <div class="promo-bar__main">
+      <span aria-hidden="true" id="gift-icon"></span>
+      Welcome treat! Get ₹50 off your first order.
+    </div>
+    <div class="promo-bar__terms">On eligible orders up to ₹500 • Terms apply</div>
+  </div>
+
+  <header class="web-header web-header--landing">
+    <div id="logo"></div>
+    <div class="web-header__right">
+      <button class="lang-select" type="button" id="lang-btn">India</button>
+      <a class="btn btn--outline" href="#">Log in</a>
+      <a class="btn btn--primary" href="#">Sign up</a>
+    </div>
+  </header>
+
+  <div class="hero-band">
+    <img class="hero-band__bg" src="../assets/hero-bg.jpg" alt="" />
+    <section class="hero">
+      <div class="hero__copy">
+        <p class="hero__eyebrow">FOOD  DELIVERY  NEAR  ME</p>
+        <h1 class="hero__title">
+          Food Delivery Near Me<br />
+          <span class="accent">Order food online,<br />made easy.</span>
+        </h1>
+        <p class="hero__sub">Enter your delivery address to find food options that deliver to your area.</p>
+        <div class="hero__search">
+          <span class="field__icon" id="pin-icon" aria-hidden="true"></span>
+          <input type="text" placeholder="Enter your house no., street, area or PIN code" aria-label="Delivery address" />
+          <a class="btn btn--primary" href="discovery.html">Find food →</a>
+        </div>
+        <button class="hero__locate" type="button" id="locate-btn">Use my current location</button>
+        <p class="hero__hint">We’ll show restaurants only after you enter an address.</p>
+      </div>
+    </section>
+  </div>
+
+  <div class="value-bar">
+    <div class="value-bar__inner">
+      <div class="value-item">
+        <div class="value-item__icon" id="v1"></div>
+        <div>
+          <strong>Local options</strong>
+          <p>Find restaurants that deliver to your address</p>
+        </div>
+      </div>
+      <div class="value-item">
+        <div class="value-item__icon" id="v2"></div>
+        <div>
+          <strong>Easy ordering</strong>
+          <p>Simple and secure online ordering</p>
+        </div>
+      </div>
+      <div class="value-item">
+        <div class="value-item__icon" id="v3"></div>
+        <div>
+          <strong>Offers with clear terms</strong>
+          <p>Great food with exciting offers</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <section class="section favourites">
+    <div class="container">
+      <div class="favourites__head">
+        <div>
+          <h2 class="section__title">India’s Food Favourites</h2>
+          <p class="section__sub">Explore popular cuisines and dishes loved across India.</p>
+        </div>
+        <aside class="favourites__tip">
+          <span class="favourites__tip-icon" id="bulb" aria-hidden="true"></span>
+          <p><strong>Just browsing for inspiration?</strong> Enter your address to check what’s available in your area.</p>
+        </aside>
+      </div>
+      <div class="cuisine-grid" id="cuisines"></div>
+    </div>
+  </section>
+
+  <section class="section section--promo">
+    <div class="container">
+      <div class="promo-banner">
+        <img class="promo-banner__gift" src="../assets/promo-gift-cut.png" alt="" />
+        <div class="promo-banner__content">
+          <div class="promo-banner__copy">
+            <div class="promo-banner__eyebrow">NEW HERE?</div>
+            <div class="promo-banner__title">Get <span class="accent">₹50 off</span> your first order.</div>
+            <p class="promo-banner__sub">For eligible orders up to ₹500. See offer terms before ordering.</p>
+          </div>
+          <div class="promo-banner__cta">
+            <a class="btn btn--primary btn--lg" href="discovery.html">Enter your address →</a>
+            <p class="promo-banner__terms">Terms apply</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section how-works">
+    <div class="container">
+      <h2 class="section__title">How nomnom works</h2>
+      <p class="section__sub">Get your favourite food in a few simple steps.</p>
+      <div class="steps">
+        <article class="step">
+          <div class="step__top">
+            <span class="step__badge">1</span>
+            <span class="step__icon" id="s1"></span>
+          </div>
+          <strong>Add your address</strong>
+          <p>Enter your house no., street, area or PIN code.</p>
+        </article>
+        <div class="steps__arrow" aria-hidden="true"></div>
+        <article class="step">
+          <div class="step__top">
+            <span class="step__badge">2</span>
+            <span class="step__icon" id="s2"></span>
+          </div>
+          <strong>Check local options</strong>
+          <p>We’ll show restaurants and cuisines that deliver to your area.</p>
+        </article>
+        <div class="steps__arrow" aria-hidden="true"></div>
+        <article class="step">
+          <div class="step__top">
+            <span class="step__badge">3</span>
+            <span class="step__icon" id="s3"></span>
+          </div>
+          <strong>Choose and order</strong>
+          <p>Add items to cart and place your order securely.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--meals">
+    <div class="container feature-split">
+      <div class="feature-split__media" aria-hidden="true">
+        <img src="../assets/meals-feast.jpg" alt="" />
+      </div>
+      <div class="feature-split__copy">
+        <p class="feature-split__eyebrow">GOOD FOOD, GREAT MOMENTS</p>
+        <h2 class="section__title">Your favourite meals, delivered to you.</h2>
+        <p class="feature-split__lead">Enter your address to see relevant restaurants, cuisines and offers near you.</p>
+        <ul class="feature-list">
+          <li>
+            <div class="feature-list__icon"><i data-lucide="map-pin"></i></div>
+            <div>
+              <strong>Discover local options</strong>
+              <p>See restaurants that deliver to your area.</p>
+            </div>
+          </li>
+          <li>
+            <div class="feature-list__icon"><i data-lucide="utensils-crossed"></i></div>
+            <div>
+              <strong>Wide variety</strong>
+              <p>Biryani, pizza, North Indian, South Indian, burgers and more.</p>
+            </div>
+          </li>
+          <li>
+            <div class="feature-list__icon"><i data-lucide="heart"></i></div>
+            <div>
+              <strong>Easy and secure ordering</strong>
+              <p>Multiple payment options for a smooth experience.</p>
+            </div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--app">
+    <div class="container">
+      <div class="app-teaser">
+        <img class="app-teaser__phone" src="../assets/app-phone.png" alt="" />
+        <div class="app-teaser__copy">
+          <span class="app-teaser__icon"><i data-lucide="smartphone"></i></span>
+          <div>
+            <strong>The nomnom app</strong>
+            <p>Order on the go. Same great food, coming soon.</p>
+          </div>
+        </div>
+        <button class="btn app-teaser__btn" type="button">
+          <i data-lucide="map-pin"></i> App coming soon
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--partner">
+    <div class="container">
+      <div class="partner-cta">
+        <div class="partner-cta__inner">
+          <div class="partner-cta__copy">
+            <span class="partner-cta__icon"><i data-lucide="store"></i></span>
+            <div>
+              <h2>Restaurant or delivery partner?</h2>
+              <p>Grow your business with nomnom.</p>
+            </div>
+          </div>
+          <a class="btn btn--partner" href="#">Learn about partnering with us <i data-lucide="arrow-right"></i></a>
+        </div>
+        <div class="partner-cta__photo" aria-hidden="true">
+          <img src="../assets/partner-wok.jpg" alt="" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <div id="logo-foot"></div>
+        <p class="site-footer__tag">Good food. Made easy.</p>
+        <div class="socials">
+          <a href="#" aria-label="Instagram"><i data-lucide="instagram"></i></a>
+          <a href="#" aria-label="Facebook"><i data-lucide="facebook"></i></a>
+          <a href="#" aria-label="X"><i data-lucide="twitter"></i></a>
+          <a href="#" aria-label="YouTube"><i data-lucide="youtube"></i></a>
+          <a href="#" aria-label="LinkedIn"><i data-lucide="linkedin"></i></a>
+        </div>
+      </div>
+      <div>
+        <h4>Explore</h4>
+        <a href="#">Cuisines</a>
+        <a href="#">Offers</a>
+        <a href="#">Cities</a>
+      </div>
+      <div>
+        <h4>Help &amp; Support</h4>
+        <a href="#">Order help</a>
+        <a href="#">Payments</a>
+        <a href="#">Contact us</a>
+        <a href="#">FAQs</a>
+      </div>
+      <div>
+        <h4>About</h4>
+        <a href="#">Our story</a>
+        <a href="#">Careers</a>
+        <a href="#">Terms &amp; Conditions</a>
+        <a href="#">Privacy Policy</a>
+      </div>
+    </div>
+    <div class="site-footer__bottom">
+      <span>© 2026 nomnom. All rights reserved.</span>
+      <button class="footer-locale" type="button">
+        <i data-lucide="globe"></i> India (EN) <i data-lucide="chevron-down"></i>
+      </button>
+    </div>
+  </footer>
+</div>
+
+<div class="only-mobile m-page m-page--landing m-page--no-tab">
+  <header class="m-header">
+    <div id="m-logo"></div>
+    <button class="m-icon-btn" type="button" aria-label="Account" id="m-user-btn"></button>
+  </header>
+  <div class="m-content">
+    <div class="m-welcome">
+      <img class="m-welcome__art" src="../assets/welcome-gift.png" alt="" width="104" height="104" />
+      <div class="m-welcome__copy">
+        <div class="m-welcome__eyebrow">WELCOME TREAT!</div>
+        <div class="m-welcome__title">
+          Get <span class="m-welcome__accent">₹50 off</span>
+          <br />on your first order
+        </div>
+        <p class="m-welcome__sub">Order anything up to ₹500. T&amp;C apply.</p>
+      </div>
+    </div>
+    <div class="m-address-card">
+      <div class="m-loc-label" id="m-loc-label">Enter your delivery address</div>
+      <div class="m-address-row">
+        <label class="field m-address-field">
+          <span class="field__icon" id="m-search-i"></span>
+          <input type="text" placeholder="House no., street, area or PIN code" aria-label="Delivery address" />
+          <span class="m-address-field__divider" aria-hidden="true"></span>
+          <button type="button" class="m-icon-btn m-locate-btn" aria-label="Use current location" id="m-locate"></button>
+        </label>
+        <a class="btn btn--primary m-find-btn" href="discovery.html">Find food →</a>
+      </div>
+    </div>
+    <div class="m-section-head">
+      <h2>Popular in your area</h2>
+      <a href="discovery.html">See all →</a>
+    </div>
+    <div class="m-cat-grid" id="m-cats"></div>
+    <div class="m-section-head"><h2>Why choose nomnom</h2></div>
+    <div class="m-why">
+      <div>
+        <div class="m-why__icon" id="m-w1"></div>
+        <strong>Wide choice</strong>
+        <p>Top restaurants near you</p>
+      </div>
+      <div>
+        <div class="m-why__icon" id="m-w2"></div>
+        <strong>Easy ordering</strong>
+        <p>Simple and secure</p>
+      </div>
+      <div>
+        <div class="m-why__icon" id="m-w3"></div>
+        <strong>Great offers</strong>
+        <p>Save more every day</p>
+      </div>
+    </div>
+    <div class="m-app-card">
+      <div class="m-app-card__phone" aria-hidden="true">
+        <img src="../assets/app-phone.png" alt="" width="140" height="160" />
+      </div>
+      <div class="m-app-card__copy">
+        <strong>Get the <span class="m-app-card__brand">nomnom</span> app</strong>
+        <p>Faster ordering, exclusive offers and more.</p>
+        <div class="store-badges">
+          <span class="store-badge store-badge--play">
+            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="#fff" d="M3.6 2.4l11.2 7.1L3.6 16.6V2.4zm12.8 8.1l2.9 1.8-2.9 1.8-2.1-1.8 2.1-1.8zM3.6 17.8l11.2-7.1 3.6 2.3L3.6 21.6v-3.8zm15.7-6.4l2.4 1.5c.7.4.7 1.5 0 1.9l-2.4 1.5-3.2-2 3.2-2.9z"/></svg>
+            <span><small>GET IT ON</small>Google Play</span>
+          </span>
+          <span class="store-badge store-badge--ios">
+            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="#fff" d="M16.4 12.7c0-2.1 1.7-3.1 1.8-3.2-1-1.4-2.5-1.6-3.1-1.6-1.3-.1-2.5.8-3.2.8-.7 0-1.7-.7-2.8-.7-1.4 0-2.8.9-3.5 2.2-1.5 2.6-.4 6.4 1.1 8.5.7 1 1.6 2.2 2.7 2.1 1.1 0 1.5-.7 2.8-.7s1.6.7 2.8.7c1.2 0 1.9-1 2.6-2 .8-1.2 1.1-2.3 1.1-2.4-.1 0-2.2-.8-2.3-3.7zm-2.1-6.2c.6-.7 1-1.7.9-2.7-1 .1-2.1.6-2.7 1.4-.6.6-1.1 1.7-1 2.6 1.1.1 2.1-.5 2.8-1.3z"/></svg>
+            <span><small>Download on the</small>App Store</span>
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer class="m-footer-mini">
+    © 2026 nomnom. All rights reserved.
+    <a href="#">Privacy</a> | <a href="#">Terms</a> | <a href="#">Contact</a>
+  </footer>
+</div>
+
+  <script src="../js/shared.js"></script>
+  <script src="https://unpkg.com/lucide@0.469.0"></script>
+  <script>
+    document.getElementById("logo").innerHTML = logoHTML();
+    document.getElementById("logo-foot").innerHTML = logoHTML("logo--inverse");
+    document.getElementById("gift-icon").innerHTML = icon("gift", 18);
+    document.getElementById("pin-icon").innerHTML = icon("pin", 18);
+    document.getElementById("lang-btn").innerHTML =
+      `${icon("globe", 16)} India ${icon("chevronDown", 16)}`;
+    document.getElementById("locate-btn").innerHTML = icon("locate", 16) + " Use my current location";
+    document.getElementById("v1").innerHTML = icon("pin", 20);
+    document.getElementById("v2").innerHTML = icon("phone", 20);
+    document.getElementById("v3").innerHTML = icon("percent", 20);
+    document.getElementById("bulb").innerHTML = icon("bulb", 18);
+    document.getElementById("s1").innerHTML = icon("pin", 18);
+    document.getElementById("s2").innerHTML = icon("store", 18);
+    document.getElementById("s3").innerHTML = icon("bag", 18);
+
+    document.getElementById("cuisines").innerHTML = CATEGORIES.map(c => `
+      <a class="cuisine-card" href="discovery.html">
+        <div class="cuisine-card__img"><img src="${c.img}" alt="${c.name}" loading="lazy" /></div>
+        <span class="cuisine-card__label">${c.name}</span>
+      </a>
+    `).join("");
+
+    document.getElementById("m-logo").innerHTML = logoHTML("logo--sm");
+    document.getElementById("m-user-btn").innerHTML = icon("user", 22);
+    document.getElementById("m-loc-label").innerHTML = icon("pin", 18) + " Enter your delivery address";
+    document.getElementById("m-search-i").innerHTML = icon("search", 18);
+    document.getElementById("m-locate").innerHTML = icon("locate", 20);
+    document.getElementById("m-w1").innerHTML = icon("zap", 22);
+    document.getElementById("m-w2").innerHTML = icon("bike", 22);
+    document.getElementById("m-w3").innerHTML = icon("percent", 22);
+    document.getElementById("m-cats").innerHTML = [
+      { name: "Biryani", img: IMG.biryani },
+      { name: "Pizza", img: IMG.pizza },
+      { name: "Burgers", img: IMG.burger },
+      { name: "North Indian", img: IMG.north },
+      { name: "South Indian", img: IMG.south },
+      { name: "Chinese", img: IMG.chinese },
+      { name: "Rolls & Wraps", img: IMG.rolls },
+      { name: "Desserts", img: IMG.dessert },
+    ].map(c => `
+      <a class="m-cat" href="discovery.html">
+        <div class="m-cat__img"><img src="${c.img}" alt="${c.name}" loading="lazy" /></div>
+        <span>${c.name}</span>
+      </a>
+    `).join("");
+
+    if (window.lucide) lucide.createIcons();
+  </script>
+</body>
+</html>

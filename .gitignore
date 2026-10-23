@@ -1,0 +1,14 @@
+# Local design refs / private brief — do not publish
+screens/
+Swiggy_api.docx
+
+# OS / editor
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+
+# Temp extract helpers
+_extract_docx.ps1
+_swiggy_api_extract.txt
