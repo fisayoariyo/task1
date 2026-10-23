@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>nomnom — Checkout</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/tokens.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/web.css" />
+  <link rel="stylesheet" href="../css/mobile.css" />
+  <link rel="stylesheet" href="../css/responsive.css" />
+</head>
+<body style="background:var(--color-bg)">
+
+<!-- ========== DESKTOP ========== -->
+<div class="only-desktop">
+  <div class="promo-bar">
+    <span id="d-gift"></span>
+    Welcome treat! Get ₹50 off your first order.
+  </div>
+
+  <header class="web-header">
+    <div id="d-logo"></div>
+    <div class="web-header__center">
+      <button class="location-pill" type="button">
+        <span class="pin" id="d-pin"></span>
+        Koramangala, Bengaluru
+        <span id="d-chev"></span>
+      </button>
+      <label class="field" style="flex:1;min-height:44px">
+        <span class="field__icon" id="d-search-i"></span>
+        <input type="search" placeholder="Search for restaurants, cuisines or dishes..." aria-label="Search" />
+      </label>
+    </div>
+    <div class="web-header__right">
+      <a class="btn btn--outline" href="#">Log in</a>
+      <a class="btn btn--primary" href="#">Sign up</a>
+      <a class="cart-btn" href="checkout.html" aria-label="Cart">
+        <span id="d-cart-i"></span>
+        <span class="cart-btn__badge" id="d-cart-badge">2</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="container dck">
+    <nav class="breadcrumb">
+      <a href="landing.html">Home</a> / <a href="discovery.html">Restaurants</a> /
+      <a href="restaurant.html">Royal Biryani House</a> / Checkout
+    </nav>
+
+    <div class="dck-eta">
+      <div class="dck-eta__from">
+        <div class="dck-eta__avatar">
+          <img src="https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=200&q=80" alt="" />
+          <span class="dck-eta__badge" id="d-store-badge"></span>
+        </div>
+        <div>
+          <strong>Royal Biryani House</strong>
+          <span>Koramangala, Bengaluru</span>
+        </div>
+      </div>
+      <div class="dck-eta__mid">
+        <div class="dck-eta__route">
+          <span class="dck-eta__dash"></span>
+          <span id="d-bike"></span>
+          <span class="dck-eta__dash"></span>
+        </div>
+        <strong class="dck-eta__time">25 – 35 min</strong>
+        <span class="dck-eta__hint">Estimated arrival · After restaurant confirms</span>
+      </div>
+      <div class="dck-eta__to">
+        <div class="dck-eta__home" id="d-home-badge"></div>
+        <div>
+          <strong>Deliver to Home</strong>
+          <span>Koramangala, Bengaluru</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="dck-layout">
+      <div class="dck-main">
+        <section class="cart-box dck-card">
+          <h3 class="dck-card__title" id="d-addr-h">Delivery address</h3>
+          <div class="dck-addr">
+            <span class="tag-home">Home</span>
+            <p>Flat 302, Lakeview Residency, 80 Feet Road, Koramangala, Bengaluru 560034</p>
+            <a class="ck-link" href="#">Change</a>
+          </div>
+          <div class="dck-contact">
+            <span class="addr-contact__who" id="d-contact-who"></span>
+            <a class="ck-link" href="#">Edit</a>
+          </div>
+        </section>
+
+        <section class="cart-box dck-card">
+          <h3 class="dck-card__title" id="d-instr-h">Delivery instructions</h3>
+          <div class="instr-grid dck-instr" id="d-instr">
+            <button type="button" class="instr-btn is-active" id="d-instr-door">Leave at door</button>
+            <button type="button" class="instr-btn" id="d-instr-call">Call on arrival</button>
+            <button type="button" class="instr-btn" id="d-instr-hand">Hand it to me</button>
+          </div>
+          <label class="note-field">
+            <span class="note-field__icon" id="d-note-i"></span>
+            <input type="text" placeholder="Add landmark / delivery note (optional)" aria-label="Delivery note" />
+          </label>
+        </section>
+
+        <section class="cart-box dck-card">
+          <h3 class="dck-card__title" id="d-offers-h">Offers &amp; coupons</h3>
+          <label class="offer-box">
+            <input type="radio" name="offer-d" class="offer-box__radio" aria-label="Use NOMNOM50" />
+            <div class="offer-box__body">
+              <strong class="offer-box__title">Use <span class="offer-box__code">NOMNOM50</span> · Save ₹50</strong>
+              <span class="offer-box__sub">Get ₹50 off on orders above ₹500</span>
+            </div>
+            <span class="offer-box__tag">Available offer</span>
+          </label>
+          <button type="button" class="coupon-row" id="d-have-coupon">
+            <span class="coupon-row__left" id="d-coupon-label"></span>
+            <span id="d-coupon-chev"></span>
+          </button>
+        </section>
+
+        <section class="cart-box dck-card">
+          <h3 class="dck-card__title" id="d-pay-h">Choose payment method</h3>
+          <div class="pay-list">
+            <label class="pay-row">
+              <input type="radio" name="pay-d" checked />
+              <span class="pay-row__icon" id="d-pay-upi"></span>
+              <span class="pay-row__text">
+                <strong>UPI</strong>
+                <em>Pay using Google Pay, PhonePe, Paytm or any UPI app</em>
+              </span>
+              <span class="pay-row__brands" aria-hidden="true">
+                <span class="pay-brand pay-brand--gpay">
+                  <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="#4285F4" d="M12 10.2v3.6h5.1c-.2 1.2-.9 2.2-1.9 2.9l3.1 2.4c1.8-1.7 2.8-4.1 2.8-7 0-.7-.1-1.3-.2-1.9H12z"/><path fill="#34A853" d="M5.3 14.3l-.8.6-2.7 2.1C3.5 20.1 7.4 23 12 23c2.7 0 5-.9 6.7-2.4l-3.1-2.4c-.9.6-2 .9-3.6.9-2.8 0-5.1-1.9-5.9-4.4z"/><path fill="#FBBC05" d="M2.6 7.1C1.9 8.5 1.5 10.2 1.5 12s.4 3.5 1.1 4.9l3.5-2.7c-.2-.6-.3-1.2-.3-2.2s.1-1.6.3-2.2L2.6 7.1z"/><path fill="#EA4335" d="M12 4.8c1.5 0 2.8.5 3.9 1.5l2.9-2.9C16.9 1.7 14.7.8 12 .8 7.4.8 3.5 3.7 1.8 7.9l3.5 2.7C6.9 6.7 9.2 4.8 12 4.8z"/></svg>
+                </span>
+                <span class="pay-brand pay-brand--phonepe">
+                  <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="#fff" d="M13.2 4.2c-.4-.3-.9-.2-1.2.2L7.2 12c-.2.3 0 .7.3.8l2.1.7v5.3c0 .4.3.7.7.7h.1c.3 0 .6-.2.7-.5l5.2-12.2c.2-.4 0-.9-.4-1.1l-2.7-1.5z"/></svg>
+                </span>
+                <span class="pay-brand pay-brand--paytm">Paytm</span>
+              </span>
+            </label>
+            <label class="pay-row">
+              <input type="radio" name="pay-d" />
+              <span class="pay-row__icon" id="d-pay-card"></span>
+              <span class="pay-row__text">
+                <strong>Credit &amp; Debit Cards</strong>
+                <em>Visa, Mastercard, RuPay and more</em>
+              </span>
+            </label>
+            <label class="pay-row">
+              <input type="radio" name="pay-d" />
+              <span class="pay-row__icon" id="d-pay-bank"></span>
+              <span class="pay-row__text">
+                <strong>Netbanking</strong>
+                <em>All major banks</em>
+              </span>
+            </label>
+            <label class="pay-row">
+              <input type="radio" name="pay-d" />
+              <span class="pay-row__icon pay-row__icon--wallet" id="d-pay-wallet"></span>
+              <span class="pay-row__text">
+                <strong>Wallets</strong>
+                <em>Paytm, Amazon Pay and more</em>
+              </span>
+            </label>
+            <label class="pay-row">
+              <input type="radio" name="pay-d" />
+              <span class="pay-row__icon" id="d-pay-cod"></span>
+              <span class="pay-row__text">
+                <strong>Cash on Delivery</strong>
+                <em>Pay in cash at the time of delivery</em>
+              </span>
+            </label>
+          </div>
+        </section>
+      </div>
+
+      <aside class="dck-side">
+        <section class="cart-box dck-card">
+          <div class="order-head">
+            <h3 class="dck-card__title" id="d-order-h">Your order (2 items)</h3>
+            <a class="ck-link" href="restaurant.html">Edit</a>
+          </div>
+          <div id="d-order-lines"></div>
+          <button class="order-action" type="button">
+            <span class="order-action__left" id="d-cook-label"></span>
+            <span id="d-ch1"></span>
+          </button>
+          <label class="order-action order-action--cutlery">
+            <span class="order-action__left" id="d-cutlery-label"></span>
+            <input type="checkbox" class="order-check" aria-label="Cutlery needed" />
+          </label>
+        </section>
+
+        <section class="cart-box dck-card dck-card--bill">
+          <h3 class="dck-card__title" id="d-bill-h">Bill details</h3>
+          <div class="bill-row"><span>Item total (2 items)</span><span>₹339</span></div>
+          <div class="bill-row bill-row--discount"><span>Discount</span><span>− ₹0</span></div>
+          <div class="bill-row"><span>Restaurant packaging charge</span><span>₹10</span></div>
+          <div class="bill-row"><span>Platform fee <i class="bill-info" id="d-bill-i1"></i></span><span>₹5</span></div>
+          <div class="bill-row"><span>Delivery fee <i class="bill-info" id="d-bill-i2"></i></span><span>₹30</span></div>
+          <div class="bill-row"><span>Taxes &amp; other charges <i class="bill-info" id="d-bill-i3"></i></span><span>₹18</span></div>
+          <div class="bill-grand bill-grand--inset">
+            <span>Grand total</span>
+            <span>₹402</span>
+          </div>
+          <p class="bill-note">Final fees and offers are confirmed before payment.</p>
+        </section>
+
+        <div class="dck-place">
+          <div class="dck-place__secure">
+            <span id="d-secure-i"></span>
+            <span>
+              <strong>Secure checkout</strong>
+              <em>Your payment information is safe</em>
+            </span>
+          </div>
+          <button class="btn btn--primary btn--block btn--lg" type="button">Place order · ₹402 →</button>
+        </div>
+      </aside>
+    </div>
+  </main>
+</div>
+
+<!-- ========== MOBILE ========== -->
+<div class="only-mobile m-page m-page--no-tab checkout-page">
+  <header class="m-header m-header--checkout">
+    <button class="m-icon-btn" type="button" aria-label="Back" id="back" onclick="history.back()"></button>
+    <div class="m-header__brand" id="logo"></div>
+    <span class="m-checkout-title">Checkout</span>
+  </header>
+
+  <div class="eta-card">
+    <div class="eta-card__from">
+      <div class="eta-card__avatar">
+        <img src="https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=200&q=80" alt="" />
+        <span class="eta-card__badge" id="store-badge"></span>
+      </div>
+      <strong>Royal Biryani House</strong>
+      <span>Koramangala, Bengaluru</span>
+    </div>
+    <div class="eta-card__mid">
+      <div class="eta-card__route">
+        <span class="eta-card__dash"></span>
+        <span class="eta-card__bike" id="bike"></span>
+        <span class="eta-card__dash"></span>
+      </div>
+      <div class="eta-card__time"><strong>25 – 35 min</strong></div>
+      <span class="eta-card__hint">Estimated arrival / After restaurant confirms</span>
+    </div>
+    <div class="eta-card__to">
+      <div class="eta-card__home" id="home-badge"></div>
+      <strong>Deliver to Home</strong>
+      <span>Koramangala, Bengaluru</span>
+    </div>
+  </div>
+
+  <section class="ck-card ck-card--addr">
+    <h3 class="ck-card__title" id="addr-h">Delivery address</h3>
+    <div class="addr-row">
+      <span class="tag-home">Home</span>
+      <p class="addr-row__text">Flat 302, Lakeview Residency, 80 Feet Road, Koramangala, Bengaluru 560034</p>
+      <a class="ck-link" href="#">Change</a>
+    </div>
+    <div class="addr-contact">
+      <span class="addr-contact__who" id="contact-who"></span>
+      <a class="ck-link" href="#">Edit</a>
+    </div>
+  </section>
+
+  <section class="ck-card ck-card--instr">
+    <h3 class="ck-card__title" id="instr-h">Delivery instructions</h3>
+    <div class="instr-grid" id="instr">
+      <button type="button" class="instr-btn is-active" id="instr-door">Leave at door</button>
+      <button type="button" class="instr-btn" id="instr-call">Call on arrival</button>
+      <button type="button" class="instr-btn" id="instr-hand">Hand it to me</button>
+    </div>
+    <label class="note-field">
+      <span class="note-field__icon" id="note-i"></span>
+      <input type="text" placeholder="Add landmark / delivery note (optional) / E.g. Flat no. 302, Near park, Ring the bell" aria-label="Delivery note" />
+    </label>
+  </section>
+
+  <section class="ck-card ck-card--order">
+    <div class="order-head">
+      <h3 class="ck-card__title" id="order-h">Your order (2 items)</h3>
+      <a class="ck-link" href="restaurant.html">Edit</a>
+    </div>
+    <div id="order-lines"></div>
+    <button class="order-action" type="button" id="cook-btn">
+      <span class="order-action__left" id="cook-label"></span>
+      <span id="ch1"></span>
+    </button>
+    <label class="order-action order-action--cutlery">
+      <span class="order-action__left" id="cutlery-label"></span>
+      <input type="checkbox" class="order-check" aria-label="Cutlery needed" />
+    </label>
+  </section>
+
+  <section class="ck-card ck-card--offers">
+    <h3 class="ck-card__title" id="offers-h">Offers &amp; coupons</h3>
+    <label class="offer-box">
+      <input type="radio" name="offer" class="offer-box__radio" aria-label="Use NOMNOM50" />
+      <div class="offer-box__body">
+        <strong class="offer-box__title">Use <span class="offer-box__code">NOMNOM50</span> · Save ₹50</strong>
+        <span class="offer-box__sub">Get ₹50 off on orders above ₹500</span>
+      </div>
+      <span class="offer-box__tag">Available offer</span>
+    </label>
+    <button type="button" class="coupon-row" id="have-coupon">
+      <span class="coupon-row__left" id="coupon-label"></span>
+      <span id="coupon-chev"></span>
+    </button>
+  </section>
+
+  <section class="ck-card ck-card--pay">
+    <h3 class="ck-card__title" id="pay-h">Choose payment method</h3>
+    <div class="pay-list">
+      <label class="pay-row">
+        <input type="radio" name="pay" checked />
+        <span class="pay-row__icon" id="pay-i-upi"></span>
+        <span class="pay-row__text">
+          <strong>UPI</strong>
+          <em>Pay using Google Pay, PhonePe, Paytm or any UPI app</em>
+        </span>
+        <span class="pay-row__brands" aria-hidden="true">
+          <span class="pay-brand pay-brand--gpay" title="Google Pay">
+            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="#4285F4" d="M12 10.2v3.6h5.1c-.2 1.2-.9 2.2-1.9 2.9l3.1 2.4c1.8-1.7 2.8-4.1 2.8-7 0-.7-.1-1.3-.2-1.9H12z"/><path fill="#34A853" d="M5.3 14.3l-.8.6-2.7 2.1C3.5 20.1 7.4 23 12 23c2.7 0 5-.9 6.7-2.4l-3.1-2.4c-.9.6-2 .9-3.6.9-2.8 0-5.1-1.9-5.9-4.4z"/><path fill="#FBBC05" d="M2.6 7.1C1.9 8.5 1.5 10.2 1.5 12s.4 3.5 1.1 4.9l3.5-2.7c-.2-.6-.3-1.2-.3-2.2s.1-1.6.3-2.2L2.6 7.1z"/><path fill="#EA4335" d="M12 4.8c1.5 0 2.8.5 3.9 1.5l2.9-2.9C16.9 1.7 14.7.8 12 .8 7.4.8 3.5 3.7 1.8 7.9l3.5 2.7C6.9 6.7 9.2 4.8 12 4.8z"/></svg>
+          </span>
+          <span class="pay-brand pay-brand--phonepe" title="PhonePe">
+            <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true"><path fill="#fff" d="M13.2 4.2c-.4-.3-.9-.2-1.2.2L7.2 12c-.2.3 0 .7.3.8l2.1.7v5.3c0 .4.3.7.7.7h.1c.3 0 .6-.2.7-.5l5.2-12.2c.2-.4 0-.9-.4-1.1l-2.7-1.5z"/></svg>
+          </span>
+          <span class="pay-brand pay-brand--paytm" title="Paytm">Paytm</span>
+        </span>
+      </label>
+      <label class="pay-row">
+        <input type="radio" name="pay" />
+        <span class="pay-row__icon" id="pay-i-card"></span>
+        <span class="pay-row__text">
+          <strong>Credit &amp; Debit Cards</strong>
+          <em>Visa, Mastercard, RuPay and more</em>
+        </span>
+      </label>
+      <label class="pay-row">
+        <input type="radio" name="pay" />
+        <span class="pay-row__icon" id="pay-i-bank"></span>
+        <span class="pay-row__text">
+          <strong>Netbanking</strong>
+          <em>All major banks</em>
+        </span>
+      </label>
+      <label class="pay-row">
+        <input type="radio" name="pay" />
+        <span class="pay-row__icon pay-row__icon--wallet" id="pay-i-wallet"></span>
+        <span class="pay-row__text">
+          <strong>Wallets</strong>
+          <em>Paytm, Amazon Pay and more</em>
+        </span>
+      </label>
+      <label class="pay-row">
+        <input type="radio" name="pay" />
+        <span class="pay-row__icon" id="pay-i-cod"></span>
+        <span class="pay-row__text">
+          <strong>Cash on Delivery</strong>
+          <em>Pay in cash at the time of delivery</em>
+        </span>
+      </label>
+    </div>
+  </section>
+
+  <section class="ck-card ck-card--bill">
+    <h3 class="ck-card__title" id="bill-h">Bill details</h3>
+    <div class="bill-row"><span>Item total (2 items)</span><span>₹339</span></div>
+    <div class="bill-row bill-row--discount"><span>Discount</span><span>− ₹0</span></div>
+    <div class="bill-row"><span>Restaurant packaging charge</span><span>₹10</span></div>
+    <div class="bill-row"><span>Platform fee <i class="bill-info" id="bill-i1"></i></span><span>₹5</span></div>
+    <div class="bill-row"><span>Delivery fee <i class="bill-info" id="bill-i2"></i></span><span>₹30</span></div>
+    <div class="bill-row"><span>Taxes &amp; other charges <i class="bill-info" id="bill-i3"></i></span><span>₹18</span></div>
+    <div class="bill-grand">
+      <span>Grand total</span>
+      <span>₹402</span>
+    </div>
+    <p class="bill-note">Final fees and offers are confirmed before payment.</p>
+  </section>
+
+  <div class="checkout-bar">
+    <div class="checkout-bar__secure">
+      <span class="checkout-bar__shield" id="secure-i"></span>
+      <span class="checkout-bar__secure-text">
+        <strong>Secure checkout</strong>
+        <em>Your payment information is safe</em>
+      </span>
+    </div>
+    <span class="checkout-bar__sep" aria-hidden="true"></span>
+    <button class="checkout-bar__cta" type="button">Place order · ₹402 →</button>
+  </div>
+</div>
+
+<script src="../js/shared.js"></script>
+<script>
+  function setHTML(id, html) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  }
+
+  /* Desktop chrome */
+  setHTML("d-gift", icon("gift", 16));
+  setHTML("d-logo", logoHTML());
+  setHTML("d-pin", icon("pin", 16));
+  setHTML("d-chev", icon("chevronDown", 14));
+  setHTML("d-search-i", icon("search", 18));
+  setHTML("d-cart-i", icon("cart", 20));
+  setHTML("d-store-badge", icon("store", 12));
+  setHTML("d-bike", icon("bike", 18));
+  setHTML("d-home-badge", icon("home", 18));
+  setHTML("d-addr-h", icon("pin", 16) + " Delivery address");
+  setHTML("d-instr-h", icon("fileText", 16) + " Delivery instructions");
+  setHTML("d-contact-who", icon("user", 16) + " <strong>Aarav Sharma</strong><span class=\"addr-contact__sep\"></span>+91 98••••••421");
+  setHTML("d-instr-door", icon("door", 16) + "<span>Leave at door</span>");
+  setHTML("d-instr-call", icon("phoneCall", 16) + "<span>Call on arrival</span>");
+  setHTML("d-instr-hand", icon("user", 16) + "<span>Hand it to me</span>");
+  setHTML("d-note-i", icon("fileText", 16));
+  setHTML("d-offers-h", icon("percentBadge", 20) + " Offers &amp; coupons");
+  setHTML("d-coupon-label", icon("gift", 18) + "<span>Have a coupon code?</span>");
+  setHTML("d-coupon-chev", icon("chevron", 16));
+  setHTML("d-pay-h", icon("creditCard", 18) + " Choose payment method");
+  setHTML("d-pay-upi", icon("upi", 22));
+  setHTML("d-pay-card", icon("creditCard", 20));
+  setHTML("d-pay-bank", icon("landmark", 20));
+  setHTML("d-pay-wallet", icon("wallet", 20));
+  setHTML("d-pay-cod", icon("banknote", 20));
+  setHTML("d-order-h", icon("gift", 18) + " Your order (2 items)");
+  setHTML("d-cook-label", icon("chefHat", 18) + "<span>Add cooking instructions <em>(optional)</em></span>");
+  setHTML("d-cutlery-label", icon("utensils", 18) + "<span>Cutlery needed <em>(spoon, fork, knife, etc.)</em></span>");
+  setHTML("d-ch1", icon("chevron", 16));
+  setHTML("d-bill-h", icon("receipt", 18) + " Bill details");
+  setHTML("d-bill-i1", icon("info", 14));
+  setHTML("d-bill-i2", icon("info", 14));
+  setHTML("d-bill-i3", icon("info", 14));
+  setHTML("d-secure-i", icon("shieldCheck", 20));
+
+  /* Mobile */
+  setHTML("logo", logoHTML("logo--sm"));
+  setHTML("back", icon("back", 22));
+  setHTML("bike", icon("bike", 18));
+  setHTML("store-badge", icon("store", 12));
+  setHTML("home-badge", icon("home", 18));
+  setHTML("addr-h", icon("pin", 16) + " Delivery address");
+  setHTML("instr-h", icon("fileText", 16) + " Delivery instructions");
+  setHTML("contact-who", icon("user", 16) + " <strong>Aarav Sharma</strong><span class=\"addr-contact__sep\"></span>+91 98••••••421");
+  setHTML("instr-door", icon("door", 16) + "<span>Leave at door</span>");
+  setHTML("instr-call", icon("phoneCall", 16) + "<span>Call on arrival</span>");
+  setHTML("instr-hand", icon("user", 16) + "<span>Hand it to me</span>");
+  setHTML("note-i", icon("fileText", 16));
+  setHTML("order-h", icon("gift", 18) + " Your order (2 items)");
+  setHTML("cook-label", icon("chefHat", 18) + "<span>Add cooking instructions <em>(optional)</em></span>");
+  setHTML("cutlery-label", icon("utensils", 18) + "<span>Cutlery needed <em>(spoon, fork, knife, etc.)</em></span>");
+  setHTML("offers-h", icon("percentBadge", 20) + " Offers &amp; coupons");
+  setHTML("pay-h", icon("creditCard", 18) + " Choose payment method");
+  setHTML("ch1", icon("chevron", 16));
+  setHTML("coupon-label", icon("gift", 18) + "<span>Have a coupon code?</span>");
+  setHTML("coupon-chev", icon("chevron", 16));
+  setHTML("pay-i-upi", icon("upi", 22));
+  setHTML("pay-i-card", icon("creditCard", 20));
+  setHTML("pay-i-bank", icon("landmark", 20));
+  setHTML("pay-i-wallet", icon("wallet", 20));
+  setHTML("pay-i-cod", icon("banknote", 20));
+  setHTML("bill-h", icon("receipt", 18) + " Bill details");
+  setHTML("bill-i1", icon("info", 14));
+  setHTML("bill-i2", icon("info", 14));
+  setHTML("bill-i3", icon("info", 14));
+  setHTML("secure-i", icon("shieldCheck", 22));
+
+  document.querySelectorAll(".instr-grid").forEach((grid) => {
+    grid.addEventListener("click", (e) => {
+      const btn = e.target.closest(".instr-btn");
+      if (!btn || !grid.contains(btn)) return;
+      grid.querySelectorAll(".instr-btn").forEach((b) => b.classList.remove("is-active"));
+      btn.classList.add("is-active");
+    });
+  });
+
+  setCart(CART_DEFAULT.map((c) => ({ ...c })));
+  const { lines } = cartTotals();
+  const orderHTML = lines.map((l) => `
+    <div class="order-line" data-id="${l.id}">
+      <div class="order-line__img"><img src="${l.img}" alt="" /></div>
+      <div class="order-line__main">
+        <div class="order-line__name">
+          ${l.veg ? '<span class="veg-dot"></span>' : '<span class="nonveg-dot"></span>'}
+          <span>${l.name}</span>
+        </div>
+        <div class="order-line__meta">
+          <div class="order-line__prices">
+            <span class="price--strike">₹${l.was}</span>
+            <span class="price">₹${l.price}</span>
+            <span class="price--off price--off-pill">${l.off}</span>
+          </div>
+          <div class="order-line__trail">
+            <div class="qty qty--sheet qty--order">
+              <button type="button" aria-label="Decrease">−</button>
+              <span>${l.qty}</span>
+              <button type="button" aria-label="Increase">+</button>
+            </div>
+            <strong class="order-line__sum">₹${l.price * l.qty}</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join("");
+  setHTML("order-lines", orderHTML);
+  setHTML("d-order-lines", orderHTML);
+</script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>nomnom — Restaurants near you</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/tokens.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="stylesheet" href="../css/web.css" />
+  <link rel="stylesheet" href="../css/mobile.css" />
+  <link rel="stylesheet" href="../css/responsive.css" />
+</head>
+<body style="background:var(--color-bg)">
+<div class="only-desktop">
+  <div class="promo-bar">
+    <span id="gift-icon"></span>
+    Welcome treat! Get ₹50 off your first order.
+  </div>
+
+  <header class="web-header">
+    <div id="logo"></div>
+    <div class="web-header__center">
+      <button class="location-pill" type="button">
+        <span class="pin" id="pin"></span>
+        Delivering to Koramangala, Bengaluru
+        <span id="chev"></span>
+      </button>
+      <label class="field" style="flex:1;min-height:44px">
+        <span class="field__icon" id="search-i"></span>
+        <input type="search" placeholder="Search for restaurants, cuisines or dishes" aria-label="Search" />
+      </label>
+    </div>
+    <div class="web-header__right">
+      <a class="btn btn--outline" href="#">Log in</a>
+      <a class="btn btn--primary" href="#">Sign up</a>
+      <a class="cart-btn" href="restaurant.html" aria-label="Cart">
+        <span id="cart-i"></span>
+        <span class="cart-btn__badge">0</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="container" style="padding:0 24px">
+    <nav class="breadcrumb" aria-label="Breadcrumb">
+      <a href="landing.html">Home</a> / Bengaluru / Restaurants
+    </nav>
+
+    <div class="discovery-head">
+      <div>
+        <h1>Restaurants near you</h1>
+        <p>Discover great food for every craving.</p>
+      </div>
+      <button class="location-pill" type="button">
+        <span class="pin" id="pin2"></span>
+        Koramangala, Bengaluru
+        <a class="btn btn--ghost" href="#">Change</a>
+      </button>
+    </div>
+
+    <div class="cat-scroll" id="cats" role="list"></div>
+    <div class="filters-row" id="filters"></div>
+    <div class="restaurant-grid" id="grid"></div>
+
+    <div class="pagination">
+      <div class="pagination__pages">
+        <button type="button" aria-label="Previous">‹</button>
+        <button type="button" class="is-active">1</button>
+        <button type="button">2</button>
+        <button type="button">3</button>
+        <button type="button">4</button>
+        <button type="button">5</button>
+        <button type="button" aria-label="Next">›</button>
+      </div>
+      <span class="pagination__info">Showing 1–8 of 240 restaurants</span>
+    </div>
+  </main>
+</div>
+
+<div class="only-mobile m-page m-page--discovery">
+  <header class="m-header">
+    <div id="m-logo"></div>
+    <div class="m-header__actions">
+      <button class="m-icon-btn" type="button" aria-label="Wishlist" id="m-heart"></button>
+      <a class="m-icon-btn" href="restaurant.html" aria-label="Cart">
+        <span id="m-cart"></span>
+        <span class="m-badge">0</span>
+      </a>
+    </div>
+  </header>
+
+  <div class="m-loc-row">
+    <div class="m-loc-row__left" id="m-loc"></div>
+    <a class="m-change" href="#">Change</a>
+  </div>
+
+  <div class="m-search-wrap">
+    <label class="field m-search-field">
+      <span class="field__icon" id="m-search-i"></span>
+      <input type="search" placeholder="Search for restaurants, cuisines or dishes" aria-label="Search" />
+    </label>
+  </div>
+
+  <div class="cat-scroll m-cat-scroll" id="m-cats"></div>
+  <div class="m-filters" id="m-filters"></div>
+
+  <div class="m-list-head">
+    <h2>Restaurants near you</h2>
+    <span>240 restaurants</span>
+  </div>
+
+  <div id="m-list"></div>
+
+  <nav class="mobile-tabbar" aria-label="Primary">
+    <a href="discovery.html" class="is-active" id="m-t1">Restaurants</a>
+    <a href="#" id="m-t2">Offers</a>
+    <a href="#" id="m-t3">Orders</a>
+    <a href="#" id="m-t4">Account</a>
+  </nav>
+</div>
+
+  <script src="../js/shared.js"></script>
+  <script>
+    document.getElementById("logo").innerHTML = logoHTML();
+    document.getElementById("gift-icon").innerHTML = icon("gift", 18);
+    document.getElementById("pin").innerHTML = icon("pin", 16);
+    document.getElementById("pin2").innerHTML = icon("pin", 16);
+    document.getElementById("chev").innerHTML = icon("chevronDown", 14);
+    document.getElementById("search-i").innerHTML = icon("search", 18);
+    document.getElementById("cart-i").innerHTML = icon("cart", 20);
+
+    document.getElementById("cats").innerHTML = DISCOVERY_CATS.map((c, i) => `
+      <button class="cat-item ${i === 0 ? "is-active" : ""}" type="button" role="listitem">
+        <div class="cat-item__circle">
+          ${c.icon ? icon("grid", 28) : `<img src="${c.img}" alt="" loading="lazy" />`}
+        </div>
+        <span>${c.name}</span>
+      </button>
+    `).join("");
+
+    const filterItems = [
+      { label: "Filters", ic: "filter" },
+      { label: "Sort: Recommended", ic: "chevronDown" },
+      { label: "Offers", ic: "percent" },
+      { label: "Rating 4.0+", ic: "star" },
+      { label: "Pure Veg", ic: "leaf" },
+      { label: "Fast delivery", ic: "bolt" },
+      { label: "Price", ic: "chevronDown" },
+    ];
+    document.getElementById("filters").innerHTML = filterItems.map(f => `
+      <button class="chip" type="button">${icon(f.ic, 14)} ${f.label}</button>
+    `).join("");
+
+    document.getElementById("grid").innerHTML = RESTAURANTS.map(r => `
+      <a class="r-card" href="restaurant.html">
+        <div class="r-card__img">
+          <img src="${r.img}" alt="${r.name}" loading="lazy" />
+          <span class="badge r-card__offer">${r.offer}</span>
+          <span class="r-card__wish" aria-hidden="true">${icon("heart", 14)}</span>
+        </div>
+        <div class="r-card__body">
+          <div class="r-card__top">
+            <div class="r-card__name">${r.name}</div>
+            <div class="r-card__rating"><span class="star">${icon("star", 12)}</span> ${r.rating}</div>
+          </div>
+          <div class="r-card__meta">${icon("clock", 12)} ${r.time}</div>
+          <div class="r-card__cuisines">${r.cuisines.replace(/•/g, ",")}</div>
+          <div class="r-card__foot">
+            <span>${icon("bike", 14)} ${r.promo}</span>
+            ${r.tag ? `<span class="r-card__tag r-card__tag--${r.tagType}">${r.tag}</span>` : ""}
+          </div>
+        </div>
+      </a>
+    `).join("");
+
+    /* Mobile composition */
+    document.getElementById("m-logo").innerHTML = logoHTML("logo--sm");
+    document.getElementById("m-heart").innerHTML = icon("heart", 22);
+    document.getElementById("m-cart").innerHTML = icon("shoppingCart", 22);
+    document.getElementById("m-loc").innerHTML =
+      icon("pin", 16) + "<span>Koramangala, Bengaluru</span>" + icon("chevronDown", 14);
+    document.getElementById("m-search-i").innerHTML = icon("search", 18);
+    document.getElementById("m-t1").innerHTML = icon("store", 20) + "<span>Restaurants</span>";
+    document.getElementById("m-t2").innerHTML = icon("shoppingBag", 20) + "<span>Offers</span>";
+    document.getElementById("m-t3").innerHTML = icon("clipboardList", 20) + "<span>Orders</span>";
+    document.getElementById("m-t4").innerHTML = icon("user", 20) + "<span>Account</span>";
+
+    const mobileCats = [
+      { name: "All", icon: true },
+      { name: "Biryani", img: "../assets/cats/biryani.png?v=9" },
+      { name: "Pizza", img: "../assets/cats/pizza.png?v=9" },
+      { name: "Burgers", img: "../assets/cats/burgers.png?v=9" },
+      { name: "South Indian", img: "../assets/cats/south.png?v=9" },
+      { name: "North Indian", img: "../assets/cats/north.png?v=9" },
+    ];
+    document.getElementById("m-cats").innerHTML = mobileCats.map((c, i) => `
+      <button class="cat-item ${i === 0 ? "is-active" : ""} ${c.icon ? "cat-item--all" : ""}" type="button">
+        <div class="cat-item__shape">
+          ${c.icon ? icon("layoutGrid", 18) : `<img src="${c.img}" alt="" loading="lazy" />`}
+        </div>
+        <span>${c.name}</span>
+      </button>
+    `).join("");
+
+    const mFilters = [
+      { label: "Filters", ic: "settings2", color: "chip--filters" },
+      { label: "Rating 4.0+", ic: "star", color: "chip--star" },
+      { label: "Offers", ic: "percent", color: "chip--offer" },
+      { label: "Pure Veg", ic: "leaf", color: "chip--veg" },
+      { label: "Fast Delivery", ic: "clock", color: "chip--fast" },
+    ];
+    document.getElementById("m-filters").innerHTML = mFilters.map(f => `
+      <button class="chip m-filter-chip ${f.color}" type="button">${icon(f.ic, 14)} ${f.label}</button>
+    `).join("");
+
+    const offerShort = (o) => {
+      if (/^\d+%\s*OFF/i.test(o)) return o.replace(/\s+up to.*/i, "").trim();
+      return o;
+    };
+
+    document.getElementById("m-list").innerHTML = RESTAURANTS.slice(0, 5).map(r => `
+      <a class="m-r-card" href="restaurant.html">
+        <div class="m-r-card__img">
+          <img src="${r.img}" alt="${r.name}" loading="lazy" />
+          <span class="badge m-r-card__offer">${offerShort(r.offer)}</span>
+          <span class="m-r-card__wish">${icon("heart", 14)}</span>
+        </div>
+        <div class="m-r-card__body">
+          <div class="m-r-card__name">${r.name}</div>
+          <div class="m-r-card__rating">
+            <span class="star">${icon("star", 12)}</span>
+            ${r.rating}
+            <span class="m-r-card__reviews">(${r.ratings})</span>
+          </div>
+          <div class="m-r-card__meta">${icon("clock", 12)} ${r.time} · ${r.cost}</div>
+          <div class="m-r-card__cuisines">${r.cuisines}</div>
+          <div class="m-r-card__foot">
+            <span class="m-r-card__promo">${icon("bike", 13)} ${r.promo}</span>
+            ${r.tag ? `<span class="r-card__tag r-card__tag--${r.tagType}">${r.tagType === "veg" ? icon("leaf", 10) + " " : r.tagType === "best" ? icon("zap", 10) + " " : ""}${r.tag}</span>` : ""}
+          </div>
+        </div>
+      </a>
+    `).join("");
+  </script>
+</body>
+</html>
