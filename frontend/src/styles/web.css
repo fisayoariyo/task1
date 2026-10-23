@@ -149,16 +149,15 @@
 }
 
 /*
-  Hero: Copy overlays the empty marble — seamless, no crop card.
-  Desktop composition (phone UI is .only-mobile below 768px)
-  On ultra-wide, the art stays in the same centered band as the copy
-  (no full-bleed right / empty-left imbalance).
+  Hero: text + food sit in a centered middle band (same idea as sections below).
+  At max zoom-out / ultra-wide, the composition stays centered — not stretched edge-to-edge.
 */
 .hero-band {
   position: relative;
   overflow: hidden;
   background: #fff;
   min-height: 520px;
+  width: 100%;
 }
 
 .hero-band__bg {
@@ -182,9 +181,11 @@
   z-index: 2;
   display: block;
   max-width: 1200px;
+  width: 100%;
   margin: 0 auto;
   padding: 48px 32px 56px;
   min-height: 520px;
+  box-sizing: border-box;
 }
 
 .hero__copy {
