@@ -1,26 +1,61 @@
-import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Icon } from '../components/Icon'
 import { Logo } from '../components/Logo'
-import { MENU } from '../lib/data'
+import { getMenu } from '../lib/api'
 import { useCart } from '../lib/cart'
-
-const menuNav = [
-  ['Recommended', 6],
-  ['Biryani', 12],
-  ['Combos', 8],
-  ['Starters', 10],
-  ['Kebabs', 7],
-  ['Curries', 9],
-  ['Breads', 6],
-  ['Desserts', 5],
-  ['Beverages', 8],
-]
+import { IMG, MENU } from '../lib/data'
+import { getLocation } from '../lib/location'
+import { flattenMenuDto, setMenuItems } from '../lib/menuCache'
+import { mapMenuItemFromApi } from '../lib/mappers'
 
 export default function Restaurant() {
   const navigate = useNavigate()
+  const { id: routeId } = useParams()
+  const restaurantId = routeId || 'royal'
   const { lines, itemTotal, count, addItem, changeQty, clear } = useCart()
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [placeLabel, setPlaceLabel] = useState(() => getLocation().label)
+  const [restaurantName, setRestaurantName] = useState('Royal Biryani House')
+  const [heroImg, setHeroImg] = useState(IMG.biryani)
+  const [menuItems, setMenuItemsState] = useState(MENU)
+  const [categoryNav, setCategoryNav] = useState([['Recommended', MENU.length]])
+
+  useEffect(() => {
+    const { lat, lng, label } = getLocation()
+    setPlaceLabel(label)
+    let cancelled = false
+    ;(async () => {
+      try {
+        const menuDto = await getMenu(restaurantId, lat, lng)
+        if (cancelled) return
+        const mapped = flattenMenuDto(menuDto, mapMenuItemFromApi)
+        if (mapped.length) {
+          setMenuItems(mapped)
+          setMenuItemsState(mapped)
+          if (menuDto.restaurantName) setRestaurantName(menuDto.restaurantName)
+          const firstImg = mapped.find((d) => d.img)?.img
+          if (firstImg) setHeroImg(firstImg)
+          setCategoryNav(
+            (menuDto.categories ?? []).map((c) => [c.name, c.items?.length ?? 0]),
+          )
+        }
+      } catch {
+        if (!cancelled) {
+          setMenuItemsState(MENU)
+          setCategoryNav([['Recommended', MENU.length]])
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [restaurantId])
+
+  const displayMenu = useMemo(() => {
+    const rec = menuItems.filter((d) => d.cat === 'Recommended')
+    return rec.length ? rec : menuItems
+  }, [menuItems])
   const platform = 5
   const grand = count ? itemTotal + platform : 0
   const need = Math.max(0, 199 - itemTotal)
@@ -40,7 +75,7 @@ export default function Restaurant() {
               <span className="pin">
                 <Icon name="pin" size={16} />
               </span>
-              Koramangala, Bengaluru
+              {placeLabel}
               <Icon name="chevronDown" size={14} />
             </button>
             <label className="field" style={{ flex: 1, minHeight: 44 }}>
@@ -66,19 +101,18 @@ export default function Restaurant() {
 
         <main className="container" style={{ padding: '0 24px' }}>
           <nav className="breadcrumb">
-            <Link to="/">Home</Link> / Bengaluru / <Link to="/discovery">Restaurants</Link> / Royal
-            Biryani House
+            <Link to="/">Home</Link> / <Link to="/discovery">Restaurants</Link> / {restaurantName}
           </nav>
 
           <section className="rest-hero">
             <div className="rest-hero__main">
-              <img src="https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=800&q=80" alt="Royal Biryani House" />
+              <img src={heroImg} alt={restaurantName} />
               <span className="rest-hero__badge">
                 <Icon name="star" size={11} /> Bestseller
               </span>
             </div>
             <div className="rest-hero__info">
-              <h1>Royal Biryani House</h1>
+              <h1>{restaurantName}</h1>
               <p className="rest-hero__cuisines">Biryani • Mughlai • North Indian • Chinese</p>
               <div className="rest-meta">
                 <span className="rest-meta__item">
@@ -149,7 +183,7 @@ export default function Restaurant() {
                 </span>
                 <input type="search" placeholder="Search for a dish..." aria-label="Search menu" />
               </label>
-              {menuNav.map(([label, n], i) => (
+              {categoryNav.map(([label, n], i) => (
                 <button key={label} type="button" className={i === 0 ? 'is-active' : undefined}>
                   {label} <span className="menu-nav__count">{n}</span>
                 </button>
@@ -157,12 +191,14 @@ export default function Restaurant() {
             </aside>
 
             <section>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: 4 }}>Recommended (6)</h2>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: 4 }}>
+                Recommended ({displayMenu.length})
+              </h2>
               <p style={{ color: 'var(--color-text-secondary)', fontSize: '.875rem', marginBottom: 8 }}>
                 Our chef’s special dishes, loved by customers.
               </p>
               <div>
-                {MENU.map((d) => (
+                {displayMenu.map((d) => (
                   <article key={d.id} className="dish-card">
                     <div className="dish-card__img">
                       <img src={d.img} alt={d.name} loading="lazy" />
@@ -181,8 +217,12 @@ export default function Restaurant() {
                       <div className="dish-card__row">
                         <div className="price-row">
                           <span className="price">₹{d.price}</span>
-                          <span className="price--strike">₹{d.was}</span>
-                          <span className="price--off">{d.off}</span>
+                          {d.was > d.price ? (
+                            <>
+                              <span className="price--strike">₹{d.was}</span>
+                              <span className="price--off">{d.off}</span>
+                            </>
+                          ) : null}
                         </div>
                         <button className="btn-add" type="button" onClick={() => addItem(d.id)}>
                           ADD +
@@ -233,7 +273,7 @@ export default function Restaurant() {
               <div className="cart-box delivery-box">
                 <h3 style={{ fontSize: '.9375rem' }}>Delivery details</h3>
                 <p style={{ fontSize: '.8125rem', marginBottom: 12 }}>
-                  Koramangala, Bengaluru{' '}
+                  {placeLabel}{' '}
                   <a className="btn btn--ghost" href="#" style={{ display: 'inline', padding: 0, minHeight: 'auto' }}>
                     Change
                   </a>
@@ -291,7 +331,7 @@ export default function Restaurant() {
         <div className="m-menu-hero">
           <div className="m-menu-hero__top">
             <div className="m-menu-hero__media">
-              <img src="https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=600&q=80" alt="Royal Biryani House" />
+              <img src={heroImg} alt={restaurantName} />
               <span className="m-menu-hero__badge">
                 <Icon name="star" size={11} /> Bestseller
               </span>
@@ -301,7 +341,7 @@ export default function Restaurant() {
               <span className="m-menu-hero__count">1/8</span>
             </div>
             <div className="m-menu-hero__info">
-              <h1>Royal Biryani House</h1>
+              <h1>{restaurantName}</h1>
               <p className="m-menu-hero__cuisines">Biryani • Mughlai • North Indian</p>
               <div className="m-menu-hero__rating">
                 <span className="star">
@@ -339,7 +379,7 @@ export default function Restaurant() {
         </nav>
 
         <div className="m-cat-pills">
-          {['Recommended', 'Biryani', 'Combos', 'Starters', 'Desserts'].map((c, i) => (
+          {categoryNav.slice(0, 5).map(([c], i) => (
             <button key={c} type="button" className={i === 0 ? 'is-active' : undefined}>
               {c}
             </button>
@@ -347,7 +387,7 @@ export default function Restaurant() {
         </div>
 
         <div>
-          {MENU.map((d) => (
+          {displayMenu.map((d) => (
             <article key={d.id} className="dish-card">
               <div className="dish-card__img">
                 <img src={d.img} alt={d.name} loading="lazy" />
@@ -361,8 +401,12 @@ export default function Restaurant() {
                 <div className="dish-card__row">
                   <div className="price-row">
                     <span className="price">₹{d.price}</span>
-                    <span className="price--strike">₹{d.was}</span>
-                    <span className="price--off">{d.off}</span>
+                    {d.was > d.price ? (
+                      <>
+                        <span className="price--strike">₹{d.was}</span>
+                        <span className="price--off">{d.off}</span>
+                      </>
+                    ) : null}
                   </div>
                   <button className="btn-add" type="button" onClick={() => addItem(d.id)}>
                     ADD +

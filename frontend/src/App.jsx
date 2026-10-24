@@ -9,7 +9,7 @@ export default function App() {
     <Routes>
       <Route path="/" element={<Landing />} />
       <Route path="/discovery" element={<Discovery />} />
-      <Route path="/restaurant" element={<Restaurant />} />
+      <Route path="/restaurant/:id?" element={<Restaurant />} />
       <Route path="/checkout" element={<Checkout />} />
 
       {/* Old static URLs → clean paths */}
