@@ -36,7 +36,7 @@
   --shadow-lg: 0 12px 40px rgba(26, 26, 26, 0.1);
   --shadow-card: 0 2px 12px rgba(26, 26, 26, 0.06);
 
-  --font: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font: -apple-system-body, ui-sans-serif, -apple-system, system-ui, "Segoe UI", Helvetica, "Apple Color Emoji", Arial, sans-serif, "Segoe UI Emoji", "Segoe UI Symbol";
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
