@@ -1,5 +1,6 @@
 import { HttpModule, HttpService } from '@nestjs/axios';
 import { Global, Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { MockSource } from './mock.source';
 import { RestaurantSource } from './restaurant-source';
 import { SOURCE } from './source.tokens';
@@ -7,10 +8,14 @@ import { SwiggySource } from './swiggy.source';
 
 const DEFAULT_SWIGGY_BASE_URL = 'https://www.swiggy.com/dapi';
 
-function createSource(http: HttpService): RestaurantSource {
-  const dataSource = (process.env.DATA_SOURCE ?? 'mock').toLowerCase();
+function createSource(
+  http: HttpService,
+  config: ConfigService,
+): RestaurantSource {
+  const dataSource = (config.get<string>('DATA_SOURCE') ?? 'mock').toLowerCase();
   if (dataSource === 'swiggy') {
-    const baseUrl = process.env.SWIGGY_BASE_URL ?? DEFAULT_SWIGGY_BASE_URL;
+    const baseUrl =
+      config.get<string>('SWIGGY_BASE_URL') ?? DEFAULT_SWIGGY_BASE_URL;
     return new SwiggySource(http, baseUrl);
   }
   return new MockSource();
@@ -22,8 +27,9 @@ function createSource(http: HttpService): RestaurantSource {
   providers: [
     {
       provide: SOURCE,
-      useFactory: (http: HttpService) => createSource(http),
-      inject: [HttpService],
+      useFactory: (http: HttpService, config: ConfigService) =>
+        createSource(http, config),
+      inject: [HttpService, ConfigService],
     },
   ],
   exports: [SOURCE],
