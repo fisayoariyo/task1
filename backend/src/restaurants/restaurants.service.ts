@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { CachedService } from '../cache/cached.service';
 import {
   MenuDto,
@@ -16,6 +16,17 @@ function roundCoord(value: number): number {
   return Math.round(value * 1000) / 1000;
 }
 
+function parseRequiredCoord(raw: string | undefined, name: string): number {
+  if (raw === undefined || raw.trim() === '') {
+    throw new BadRequestException(`${name} query parameter is required`);
+  }
+  const value = parseFloat(raw);
+  if (Number.isNaN(value)) {
+    throw new BadRequestException(`${name} must be a valid number`);
+  }
+  return value;
+}
+
 @Injectable()
 export class RestaurantsService {
   constructor(
@@ -28,8 +39,8 @@ export class RestaurantsService {
     lngRaw: string,
     offsetRaw?: string,
   ): Promise<RestaurantCard[]> {
-    const lat = roundCoord(parseFloat(latRaw));
-    const lng = roundCoord(parseFloat(lngRaw));
+    const lat = roundCoord(parseRequiredCoord(latRaw, 'lat'));
+    const lng = roundCoord(parseRequiredCoord(lngRaw, 'lng'));
     const offset = offsetRaw !== undefined ? parseInt(offsetRaw, 10) : 0;
     const key = `rest:${lat}:${lng}:${offset}`;
     return this.cached.wrap(key, LIST_SOFT_TTL_MS, LIST_HARD_TTL_MS, () =>
@@ -42,8 +53,8 @@ export class RestaurantsService {
     latRaw: string,
     lngRaw: string,
   ): Promise<MenuDto> {
-    const lat = parseFloat(latRaw);
-    const lng = parseFloat(lngRaw);
+    const lat = parseRequiredCoord(latRaw, 'lat');
+    const lng = parseRequiredCoord(lngRaw, 'lng');
     const key = `menu:${restaurantId}`;
     return this.cached.wrap(key, MENU_SOFT_TTL_MS, MENU_HARD_TTL_MS, () =>
       this.source.getMenu(restaurantId, lat, lng),

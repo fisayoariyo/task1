@@ -1,3 +1,4 @@
+import { BadRequestException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { CachedService } from '../cache/cached.service';
@@ -68,6 +69,18 @@ describe('RestaurantsController', () => {
       );
     });
 
+    it('throws when lat/lng are missing or invalid', async () => {
+      await expect(
+        controller.list(undefined as unknown as string, '72.877'),
+      ).rejects.toThrow(BadRequestException);
+      await expect(
+        controller.list('19.076', undefined as unknown as string),
+      ).rejects.toThrow(BadRequestException);
+      await expect(controller.list('bad', '72.877')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
     it('defaults offset to 0 when omitted', async () => {
       source.listRestaurants.mockResolvedValue([]);
 
@@ -84,6 +97,15 @@ describe('RestaurantsController', () => {
   });
 
   describe('GET /restaurants/:id/menu', () => {
+    it('throws when lat/lng are missing or invalid', async () => {
+      await expect(
+        controller.menu('r1', undefined as unknown as string, '72.877'),
+      ).rejects.toThrow(BadRequestException);
+      await expect(controller.menu('r1', '19.076', 'xyz')).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
     it('returns menu with cache key menu:{id}', async () => {
       const menu: MenuDto = {
         restaurantId: 'r1',
