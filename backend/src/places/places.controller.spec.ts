@@ -1,5 +1,6 @@
 import { BadRequestException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { CachedService } from '../cache/cached.service';
 import { RestaurantSource } from '../source/restaurant-source';
 import { SOURCE } from '../source/source.tokens';
@@ -31,7 +32,10 @@ describe('PlacesController', () => {
           useValue: { wrap: cachedWrap },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(ThrottlerGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get(PlacesController);
   });
