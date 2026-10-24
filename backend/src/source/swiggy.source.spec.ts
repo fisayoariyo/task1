@@ -5,6 +5,14 @@ import { SwiggySource } from './swiggy.source';
 
 const BASE = 'https://www.swiggy.com/dapi';
 
+const BROWSER_HEADERS = {
+  'User-Agent':
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  Accept: 'application/json, text/plain, */*',
+  Referer: 'https://www.swiggy.com/',
+  Origin: 'https://www.swiggy.com',
+};
+
 function axiosResponse<T>(data: T): AxiosResponse<T> {
   return { data, status: 200, statusText: 'OK', headers: {}, config: {} as never };
 }
@@ -35,6 +43,7 @@ describe('SwiggySource', () => {
     expect(http.get).toHaveBeenCalledWith(`${BASE}/misc/place-autocomplete`, {
       params: { input: 'mumbai', types: '' },
       timeout: 4000,
+      headers: BROWSER_HEADERS,
     });
     expect(result).toEqual([
       { placeId: 'pid-1', description: 'Mumbai, Maharashtra, India' },
@@ -53,6 +62,7 @@ describe('SwiggySource', () => {
     expect(http.get).toHaveBeenCalledWith(`${BASE}/misc/address-recommend`, {
       params: { place_id: 'pid-1' },
       timeout: 4000,
+      headers: BROWSER_HEADERS,
     });
     expect(geo).toEqual({ lat: 19.07, lng: 72.87 });
   });
@@ -94,6 +104,7 @@ describe('SwiggySource', () => {
         page_type: 'DESKTOP_SEE_ALL_LISTING',
       },
       timeout: 4000,
+      headers: BROWSER_HEADERS,
     });
     expect(list[0].id).toBe('97272');
     expect(list[0].costForTwo).toBe(150);
@@ -113,6 +124,7 @@ describe('SwiggySource', () => {
     expect(http.get).toHaveBeenCalledWith(`${BASE}/menu/v4/full`, {
       params: { lat: 19.076, lng: 72.877, menuId: '12824' },
       timeout: 4000,
+      headers: BROWSER_HEADERS,
     });
   });
 
