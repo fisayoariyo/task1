@@ -1,5 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { CART_DEFAULT, MENU } from './data'
+import { getCachedMenuItem } from './menuCache'
+
+function resolveMenuItem(id) {
+  return getCachedMenuItem(id) ?? MENU.find((m) => m.id === id)
+}
 
 const KEY = 'nomnom-cart'
 
@@ -20,7 +25,7 @@ export function writeCart(items) {
 export function cartTotals(cart) {
   const lines = cart
     .map((c) => {
-      const item = MENU.find((m) => m.id === c.id)
+      const item = resolveMenuItem(c.id)
       return item ? { ...item, qty: c.qty } : null
     })
     .filter(Boolean)

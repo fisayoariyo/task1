@@ -1,16 +1,30 @@
-# React + Vite
+# nomnom frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React + Vite SPA for landing, discovery, menu, and checkout.
 
-Currently, two official plugins are available:
+## API
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Copy `.env.example` to `.env.local` (or `.env`):
 
-## React Compiler
+```
+VITE_API_URL=http://localhost:3001
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Discovery and menu pages call the Nest BFF via `src/lib/api.js`. If the API is unreachable, they **fall back to static fixtures** in `src/lib/data.js` so the UI still works for demos and offline development.
 
-## Expanding the Oxlint configuration
+Place search on the landing page debounces autocomplete by **300 ms** (`usePlaceAutocomplete.js`).
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+## Run
+
+```bash
+npm install
+npm run dev
+```
+
+## Manual API checks (backend on :3001)
+
+```bash
+curl "http://localhost:3001/places/autocomplete?input=Mumbai"
+curl "http://localhost:3001/restaurants?lat=19.076&lng=72.877&offset=0"
+curl "http://localhost:3001/restaurants/mock-rest-1/menu?lat=19.076&lng=72.877"
+```

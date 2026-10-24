@@ -1,7 +1,10 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Icon } from '../components/Icon'
 import { Logo } from '../components/Logo'
+import { PlaceSuggestList } from '../components/PlaceSuggestList'
 import { CATEGORIES } from '../lib/data'
+import { DEFAULT_LABEL, DEFAULT_LAT, DEFAULT_LNG, setLocation } from '../lib/location'
+import { usePlaceAutocomplete } from '../lib/usePlaceAutocomplete'
 
 /** Cut-out cuisine tiles on soft pink (no SS crops — avoids seam/ghost labels) */
 const mobileCats = [
@@ -16,6 +19,20 @@ const mobileCats = [
 ]
 
 export default function Landing() {
+  const navigate = useNavigate()
+  const place = usePlaceAutocomplete()
+
+  function useDefaultLocation() {
+    setLocation({ lat: DEFAULT_LAT, lng: DEFAULT_LNG, label: DEFAULT_LABEL })
+  }
+
+  function goDiscovery() {
+    if (!place.query.trim()) {
+      useDefaultLocation()
+    }
+    navigate('/discovery')
+  }
+
   return (
     <>
       <div className="only-desktop">
@@ -57,16 +74,31 @@ export default function Landing() {
                 </span>
               </h1>
               <p className="hero__sub">Enter your delivery address to find food options that deliver to your area.</p>
-              <div className="hero__search">
+              <div className="hero__search" style={{ position: 'relative' }}>
                 <span className="field__icon">
                   <Icon name="pin" size={18} />
                 </span>
-                <input type="text" placeholder="Enter your house no., street, area or PIN code" aria-label="Delivery address" />
-                <Link className="btn btn--primary" to="/discovery">
+                <input
+                  type="text"
+                  placeholder="Enter your house no., street, area or PIN code"
+                  aria-label="Delivery address"
+                  value={place.query}
+                  onChange={(e) => place.setQuery(e.target.value)}
+                  autoComplete="off"
+                />
+                <button className="btn btn--primary" type="button" onClick={goDiscovery}>
                   Find food →
-                </Link>
+                </button>
+                <PlaceSuggestList suggestions={place.suggestions} onSelect={(s) => place.selectSuggestion(s)} />
               </div>
-              <button className="hero__locate" type="button">
+              <button
+                className="hero__locate"
+                type="button"
+                onClick={() => {
+                  useDefaultLocation()
+                  place.setQuery(DEFAULT_LABEL)
+                }}
+              >
                 <Icon name="locate" size={16} /> Use my current location
               </button>
               <p className="hero__hint">We’ll show restaurants only after you enter an address.</p>
@@ -346,19 +378,35 @@ export default function Landing() {
               <Icon name="pin" size={18} /> Enter your delivery address
             </div>
             <div className="m-address-row">
-              <label className="field m-address-field">
+              <label className="field m-address-field" style={{ position: 'relative' }}>
                 <span className="field__icon">
                   <Icon name="search" size={18} />
                 </span>
-                <input type="text" placeholder="House no., street, area or PIN code" aria-label="Delivery address" />
+                <input
+                  type="text"
+                  placeholder="House no., street, area or PIN code"
+                  aria-label="Delivery address"
+                  value={place.query}
+                  onChange={(e) => place.setQuery(e.target.value)}
+                  autoComplete="off"
+                />
                 <span className="m-address-field__divider" aria-hidden="true" />
-                <button type="button" className="m-icon-btn m-locate-btn" aria-label="Use current location">
+                <button
+                  type="button"
+                  className="m-icon-btn m-locate-btn"
+                  aria-label="Use current location"
+                  onClick={() => {
+                    useDefaultLocation()
+                    place.setQuery(DEFAULT_LABEL)
+                  }}
+                >
                   <Icon name="locate" size={20} />
                 </button>
+                <PlaceSuggestList suggestions={place.suggestions} onSelect={(s) => place.selectSuggestion(s)} />
               </label>
-              <Link className="btn btn--primary m-find-btn" to="/discovery">
+              <button className="btn btn--primary m-find-btn" type="button" onClick={goDiscovery}>
                 Find food →
-              </Link>
+              </button>
             </div>
           </div>
           <div className="m-section-head">

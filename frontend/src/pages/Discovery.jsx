@@ -1,8 +1,12 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Icon } from '../components/Icon'
 import { Logo } from '../components/Logo'
-import { DISCOVERY_CATS, MOBILE_CATS, RESTAURANTS } from '../lib/data'
+import { listRestaurants } from '../lib/api'
 import { useCart } from '../lib/cart'
+import { DISCOVERY_CATS, MOBILE_CATS, RESTAURANTS } from '../lib/data'
+import { getLocation } from '../lib/location'
+import { mapRestaurantCardFromApi } from '../lib/mappers'
 
 const filters = [
   { label: 'Filters', ic: 'filter' },
@@ -29,6 +33,38 @@ function offerShort(o) {
 
 export default function Discovery() {
   const { count } = useCart()
+  const [placeLabel, setPlaceLabel] = useState(() => getLocation().label)
+  const [restaurants, setRestaurants] = useState(RESTAURANTS)
+  const [usingFallback, setUsingFallback] = useState(false)
+
+  useEffect(() => {
+    const { lat, lng, label } = getLocation()
+    setPlaceLabel(label)
+    let cancelled = false
+    ;(async () => {
+      try {
+        const cards = await listRestaurants(lat, lng, 0)
+        if (cancelled) return
+        if (cards?.length) {
+          setRestaurants(cards.map(mapRestaurantCardFromApi))
+          setUsingFallback(false)
+        } else {
+          setRestaurants(RESTAURANTS)
+          setUsingFallback(true)
+        }
+      } catch {
+        if (!cancelled) {
+          setRestaurants(RESTAURANTS)
+          setUsingFallback(true)
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const restCount = restaurants.length
 
   return (
     <div style={{ background: 'var(--color-bg)' }}>
@@ -45,7 +81,7 @@ export default function Discovery() {
               <span className="pin">
                 <Icon name="pin" size={16} />
               </span>
-              Delivering to Koramangala, Bengaluru
+              Delivering to {placeLabel}
               <Icon name="chevronDown" size={14} />
             </button>
             <label className="field" style={{ flex: 1, minHeight: 44 }}>
@@ -83,7 +119,7 @@ export default function Discovery() {
               <span className="pin">
                 <Icon name="pin" size={16} />
               </span>
-              Koramangala, Bengaluru
+              {placeLabel}
               <a className="btn btn--ghost" href="#">
                 Change
               </a>
@@ -110,8 +146,8 @@ export default function Discovery() {
           </div>
 
           <div className="restaurant-grid">
-            {RESTAURANTS.map((r) => (
-              <Link key={r.id} className="r-card" to="/restaurant">
+            {restaurants.map((r) => (
+              <Link key={r.id} className="r-card" to={`/restaurant/${r.id}`}>
                 <div className="r-card__img">
                   <img src={r.img} alt={r.name} loading="lazy" />
                   <span className="badge r-card__offer">{r.offer}</span>
@@ -160,7 +196,10 @@ export default function Discovery() {
                 ›
               </button>
             </div>
-            <span className="pagination__info">Showing 1–8 of 240 restaurants</span>
+            <span className="pagination__info">
+              Showing 1–{Math.min(8, restCount)} of {restCount} restaurants
+              {usingFallback ? ' (offline demo data)' : ''}
+            </span>
           </div>
         </main>
       </div>
@@ -182,7 +221,7 @@ export default function Discovery() {
         <div className="m-loc-row">
           <div className="m-loc-row__left">
             <Icon name="pin" size={16} />
-            <span>Koramangala, Bengaluru</span>
+            <span>{placeLabel}</span>
             <Icon name="chevronDown" size={14} />
           </div>
           <a className="m-change" href="#">
@@ -224,12 +263,12 @@ export default function Discovery() {
 
         <div className="m-list-head">
           <h2>Restaurants near you</h2>
-          <span>240 restaurants</span>
+          <span>{restCount} restaurants</span>
         </div>
 
         <div>
-          {RESTAURANTS.slice(0, 5).map((r) => (
-            <Link key={r.id} className="m-r-card" to="/restaurant">
+          {restaurants.slice(0, 5).map((r) => (
+            <Link key={r.id} className="m-r-card" to={`/restaurant/${r.id}`}>
               <div className="m-r-card__img">
                 <img src={r.img} alt={r.name} loading="lazy" />
                 <span className="badge m-r-card__offer">{offerShort(r.offer)}</span>
