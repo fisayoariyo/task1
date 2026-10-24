@@ -23,7 +23,18 @@ function createSource(
 
 @Global()
 @Module({
-  imports: [HttpModule.register({ timeout: 4000 })],
+  imports: [
+    HttpModule.register({
+      timeout: 4000,
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        Accept: 'application/json, text/plain, */*',
+        Referer: 'https://www.swiggy.com/',
+        Origin: 'https://www.swiggy.com',
+      },
+    }),
+  ],
   providers: [
     {
       provide: SOURCE,
