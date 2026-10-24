@@ -15,6 +15,10 @@ _extract_docx.ps1
 _swiggy_api_extract.txt
 _strip_coauthor.sh
 
+# Superpowers worktrees
+.worktrees/
+.superpowers/
+
 # Node
 node_modules/
 frontend/node_modules/
