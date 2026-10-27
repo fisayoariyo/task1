@@ -129,6 +129,16 @@
 }
 
 /* Landing hero */
+.noon-landing {
+  padding-bottom: calc(var(--bottom-nav-h) + var(--safe-bottom) + var(--space-4));
+}
+
+@media (min-width: 1024px) {
+  .noon-landing {
+    padding-bottom: 0;
+  }
+}
+
 .noon-landing-hero {
   position: relative;
   background: var(--color-hero-yellow);

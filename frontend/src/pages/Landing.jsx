@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { AuthButtons } from '../components/AuthButtons'
 import { BottomNav } from '../components/BottomNav'
-/* AuthButtons still used in desktop header */
 import { Icon } from '../components/Icon'
 import { Logo } from '../components/Logo'
 import { PlaceSuggestList } from '../components/PlaceSuggestList'
