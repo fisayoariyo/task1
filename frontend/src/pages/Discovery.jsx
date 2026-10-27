@@ -1,329 +1,732 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { AuthButtons } from '../components/AuthButtons'
+import { BottomNav } from '../components/BottomNav'
+import { DeliverToControl } from '../components/DeliverToControl'
+import { RestaurantCard } from '../components/RestaurantCard'
 import { Icon } from '../components/Icon'
 import { Logo } from '../components/Logo'
+import { PlaceSuggestList } from '../components/PlaceSuggestList'
 import { listRestaurants } from '../lib/api'
+import { peekHttpCache, restaurantsCacheKey } from '../lib/httpCache'
 import { useCart } from '../lib/cart'
-import { DISCOVERY_CATS, MOBILE_CATS, RESTAURANTS } from '../lib/data'
-import { getLocation } from '../lib/location'
+import { DISCOVERY_CATS, MOBILE_CATS } from '../lib/data'
+import {
+  DEFAULT_LABEL,
+  DEFAULT_LAT,
+  DEFAULT_LNG,
+  getLocation,
+  getPreviousLocation,
+  restorePreviousLocation,
+  setLocation,
+  shortPlaceLabel,
+} from '../lib/location'
 import { mapRestaurantCardFromApi } from '../lib/mappers'
+import { usePlaceAutocomplete } from '../lib/usePlaceAutocomplete'
+import { listWishlist, toggleWishlist } from '../lib/wishlist'
 
-const filters = [
-  { label: 'Filters', ic: 'filter' },
-  { label: 'Sort: Recommended', ic: 'chevronDown' },
-  { label: 'Offers', ic: 'percent' },
-  { label: 'Rating 4.0+', ic: 'star' },
-  { label: 'Pure Veg', ic: 'leaf' },
-  { label: 'Fast delivery', ic: 'bolt' },
-  { label: 'Price', ic: 'chevronDown' },
+/** Toggle filters â€” narrow the list. */
+const FILTER_CHIPS = [
+  { id: 'offers', label: 'Offers', ic: 'percent' },
+  { id: 'rating45', label: 'Rating 4.5+', ic: 'star' },
+  { id: 'veg', label: 'Pure Veg', ic: 'leaf' },
+  { id: 'fast', label: 'Fast delivery', ic: 'bolt' },
 ]
 
-const mFilters = [
-  { label: 'Filters', ic: 'settings2', color: 'chip--filters' },
-  { label: 'Rating 4.0+', ic: 'star', color: 'chip--star' },
-  { label: 'Offers', ic: 'percent', color: 'chip--offer' },
-  { label: 'Pure Veg', ic: 'leaf', color: 'chip--veg' },
-  { label: 'Fast Delivery', ic: 'clock', color: 'chip--fast' },
+const SORT_OPTIONS = [
+  { id: 'relevance', label: 'Relevance (Default)' },
+  { id: 'delivery', label: 'Delivery Time' },
+  { id: 'rating', label: 'Rating' },
+  { id: 'costAsc', label: 'Cost: Low to High' },
+  { id: 'costDesc', label: 'Cost: High to Low' },
 ]
+
+function sortRestaurants(list, sortBy) {
+  if (!sortBy || sortBy === 'relevance') return list
+  const copy = [...list]
+  copy.sort((a, b) => {
+    if (sortBy === 'delivery') return (a.etaMins || 999) - (b.etaMins || 999)
+    if (sortBy === 'rating') return (Number(b.rating) || 0) - (Number(a.rating) || 0)
+    if (sortBy === 'costAsc') return (a.costForTwo || 0) - (b.costForTwo || 0)
+    if (sortBy === 'costDesc') return (b.costForTwo || 0) - (a.costForTwo || 0)
+    return 0
+  })
+  return copy
+}
+
+function SortByControl({ sortBy, onApply, className = '' }) {
+  const [open, setOpen] = useState(false)
+  const [draft, setDraft] = useState(sortBy)
+  const rootRef = useRef(null)
+
+  useEffect(() => {
+    if (open) setDraft(sortBy)
+  }, [open, sortBy])
+
+  useEffect(() => {
+    if (!open) return undefined
+    function onPointerDown(e) {
+      if (rootRef.current?.contains(e.target)) return
+      setOpen(false)
+    }
+    function onKeyDown(e) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [open])
+
+  const chipLabel =
+    sortBy === 'relevance'
+      ? 'Sort'
+      : SORT_OPTIONS.find((o) => o.id === sortBy)?.label.replace(' (Default)', '') || 'Sort'
+
+  return (
+    <div className={`sort-by ${className}`} ref={rootRef}>
+      <button
+        type="button"
+        className={`chip sort-by__trigger ${open || sortBy !== 'relevance' ? 'is-active' : ''}`}
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        onClick={() => setOpen((v) => !v)}
+      >
+        {chipLabel}
+        <Icon name="chevronDown" size={14} />
+      </button>
+      {open ? (
+        <div className="sort-by__panel" role="dialog" aria-label="Sort restaurants">
+          <ul className="sort-by__list" role="listbox">
+            {SORT_OPTIONS.map((opt) => (
+              <li key={opt.id}>
+                <button
+                  type="button"
+                  className={`sort-by__option ${draft === opt.id ? 'is-selected' : ''}`}
+                  role="option"
+                  aria-selected={draft === opt.id}
+                  onClick={() => setDraft(opt.id)}
+                >
+                  <span>{opt.label}</span>
+                  <span
+                    className={`sort-by__radio ${draft === opt.id ? 'is-on' : ''}`}
+                    aria-hidden="true"
+                  />
+                </button>
+              </li>
+            ))}
+          </ul>
+          <div className="sort-by__footer">
+            <button
+              type="button"
+              className="sort-by__apply"
+              onClick={() => {
+                onApply(draft)
+                setOpen(false)
+              }}
+            >
+              Apply
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+/** Matches backend page size (mock + Swiggy list batches). */
+const PAGE_SIZE = 8
+
+const CAT_MATCHERS = {
+  Biryani: [/biryani/i],
+  Pizza: [/pizza/i],
+  Burgers: [/burger/i],
+  'South Indian': [/south indian|dosa|idli|uttapam|vada/i],
+  'North Indian': [/north indian|punjabi|mughlai|tandoor|curry/i],
+  Chinese: [/chinese|asian|momos|noodles/i],
+  'Rolls & Wraps': [/roll|wrap|frankie/i],
+  Desserts: [/dessert|bakery|cake|ice cream|sweet|waffle|pastr/i],
+  Healthy: [/healthy|salad|juice|bowl/i],
+}
 
 function offerShort(o) {
   if (/^\d+%\s*OFF/i.test(o)) return o.replace(/\s+up to.*/i, '').trim()
   return o
 }
 
+function cityFromLabel(label) {
+  if (!label) return 'Your area'
+  return String(label).split(',')[0].trim() || 'Your area'
+}
+
+function initialCatFromSearch(searchParams) {
+  const raw = String(searchParams.get('cat') || '').trim()
+  if (!raw) return 'All'
+  const known = DISCOVERY_CATS.find(
+    (c) => c.name.toLowerCase() === raw.toLowerCase(),
+  )
+  return known?.name || raw
+}
+
 export default function Discovery() {
   const { count } = useCart()
+  const [searchParams] = useSearchParams()
   const [placeLabel, setPlaceLabel] = useState(() => getLocation().label)
-  const [restaurants, setRestaurants] = useState(RESTAURANTS)
-  const [usingFallback, setUsingFallback] = useState(false)
+  const [restaurants, setRestaurants] = useState([])
+  /** 'ok' | 'empty' | 'error' â€” real list only; never demo restaurants */
+  const [listStatus, setListStatus] = useState('ok')
+  const [loadingList, setLoadingList] = useState(true)
+  /** Where the address editor is open: header | page | mobile | null */
+  const [locationEditAt, setLocationEditAt] = useState(null)
+  const [restQuery, setRestQuery] = useState('')
+  const [activeCat, setActiveCat] = useState(() => initialCatFromSearch(searchParams))
+  const [activeFilters, setActiveFilters] = useState(() => new Set())
+  const [sortBy, setSortBy] = useState('relevance')
+  const [wishTick, setWishTick] = useState(0)
+  const [hasMore, setHasMore] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const place = usePlaceAutocomplete()
+  const locEditRef = useRef(null)
+  const nextOffsetRef = useRef(0)
+  const loadMoreLockRef = useRef(false)
+  const hasMoreRef = useRef(true)
+  const seenIdsRef = useRef(new Set())
+  const desktopSentinelRef = useRef(null)
+  const mobileSentinelRef = useRef(null)
 
-  useEffect(() => {
-    const { lat, lng, label } = getLocation()
-    setPlaceLabel(label)
-    let cancelled = false
-    ;(async () => {
-      try {
-        const cards = await listRestaurants(lat, lng, 0)
-        if (cancelled) return
-        if (cards?.length) {
-          setRestaurants(cards.map(mapRestaurantCardFromApi))
-          setUsingFallback(false)
-        } else {
-          setRestaurants(RESTAURANTS)
-          setUsingFallback(true)
-        }
-      } catch {
-        if (!cancelled) {
-          setRestaurants(RESTAURANTS)
-          setUsingFallback(true)
-        }
-      }
-    })()
-    return () => {
-      cancelled = true
+  function setHasMoreSafe(value) {
+    hasMoreRef.current = value
+    setHasMore(value)
+  }
+
+  function openLocationEdit(at, seedQuery = '') {
+    setLocationEditAt(at)
+    place.setQuery(seedQuery)
+    if (at === 'header') {
+      // Address field replaces the top-middle search â€” keep it in view.
+      requestAnimationFrame(() => {
+        document.getElementById('discovery-loc-search')?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        })
+      })
     }
+  }
+
+  function closeLocationEdit() {
+    setLocationEditAt(null)
+    place.setQuery('')
+  }
+
+  const placeSuggestEmptyHint =
+    place.query.trim().length >= 3 && !place.loading
+      ? 'No places match that address. Try a nearby area or landmark.'
+      : place.query.trim().length > 0 && place.query.trim().length < 3
+        ? 'Keep typing â€” enter at least 3 letters'
+        : null
+
+  function toggleFilter(id) {
+    setActiveFilters((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function resetListControls() {
+    setActiveCat('All')
+    setActiveFilters(new Set())
+    setSortBy('relevance')
+    setRestQuery('')
+  }
+
+  /** Which filters can match at least one card in the current area. */
+  const filterAvail = useMemo(() => {
+    const avail = { offers: false, rating45: false, veg: false, fast: false }
+    for (const r of restaurants) {
+      if (r.offer) avail.offers = true
+      if (Number(r.rating) >= 4.5) avail.rating45 = true
+      if (r.isVeg === true) avail.veg = true
+      if ((r.etaMins || 0) > 0 && r.etaMins <= 30) avail.fast = true
+    }
+    return avail
+  }, [restaurants])
+
+  const applyListBatch = useCallback((cards, { append }) => {
+    const mapped = (cards || []).map(mapRestaurantCardFromApi)
+    if (append) {
+      const fresh = mapped.filter((r) => !seenIdsRef.current.has(r.id))
+      fresh.forEach((r) => seenIdsRef.current.add(r.id))
+      if (fresh.length) {
+        setRestaurants((prev) => [...prev, ...fresh])
+      }
+      nextOffsetRef.current += mapped.length
+      // Stop if the feed ended or the batch was all duplicates.
+      setHasMoreSafe(mapped.length >= PAGE_SIZE && fresh.length > 0)
+      return
+    }
+    seenIdsRef.current = new Set(mapped.map((r) => r.id))
+    if (mapped.length) {
+      setRestaurants(mapped)
+      setListStatus('ok')
+    } else {
+      setRestaurants([])
+      setListStatus('empty')
+    }
+    nextOffsetRef.current = mapped.length
+    setHasMoreSafe(mapped.length >= PAGE_SIZE)
   }, [])
 
-  const restCount = restaurants.length
+  const loadRestaurants = useCallback(async () => {
+    const { lat, lng, label } = getLocation()
+    setPlaceLabel(label)
+    nextOffsetRef.current = 0
+    seenIdsRef.current = new Set()
+    setHasMoreSafe(true)
+    loadMoreLockRef.current = false
+
+    const cacheKey = restaurantsCacheKey(lat, lng, 0)
+    const cached = peekHttpCache(cacheKey)
+    if (cached) {
+      applyListBatch(cached, { append: false })
+      setLoadingList(false)
+      return
+    }
+    setLoadingList(true)
+    try {
+      const cards = await listRestaurants(lat, lng, 0)
+      applyListBatch(cards, { append: false })
+    } catch {
+      setRestaurants([])
+      setListStatus('error')
+      setHasMoreSafe(false)
+    } finally {
+      setLoadingList(false)
+    }
+  }, [applyListBatch])
+
+  const loadMoreRestaurants = useCallback(async () => {
+    if (loadMoreLockRef.current || !hasMoreRef.current) return
+    loadMoreLockRef.current = true
+    setLoadingMore(true)
+    const offset = nextOffsetRef.current
+    try {
+      const { lat, lng } = getLocation()
+      const cards = await listRestaurants(lat, lng, offset)
+      applyListBatch(cards, { append: true })
+    } catch {
+      setHasMoreSafe(false)
+    } finally {
+      setLoadingMore(false)
+      loadMoreLockRef.current = false
+    }
+  }, [applyListBatch])
+
+  useEffect(() => {
+    loadRestaurants()
+  }, [loadRestaurants])
+
+  useEffect(() => {
+    setActiveCat(initialCatFromSearch(searchParams))
+  }, [searchParams])
+
+  async function applyPlace(suggestion) {
+    const ok = await place.selectSuggestion(suggestion)
+    if (!ok) return
+    closeLocationEdit()
+    resetListControls()
+    await loadRestaurants()
+  }
+
+  /**
+   * Close the address editor.
+   * If this area has no restaurants and a prior pin exists, undo back to it
+   * (so Cancel escapes a bad pick). Otherwise Cancel only closes the field.
+   */
+  async function cancelLocationEdit() {
+    closeLocationEdit()
+    if (loadingList || restaurants.length > 0) return
+    const prev = getPreviousLocation()
+    if (prev) {
+      const current = getLocation()
+      const same =
+        (prev.placeId && current.placeId && prev.placeId === current.placeId) ||
+        (Math.abs(prev.lat - current.lat) < 1e-5 && Math.abs(prev.lng - current.lng) < 1e-5)
+      if (!same) {
+        restorePreviousLocation()
+        resetListControls()
+        await loadRestaurants()
+        return
+      }
+    }
+    // Stuck on an empty area with no undo history â€” fall back to default city.
+    const current = getLocation()
+    if (
+      Math.abs(current.lat - DEFAULT_LAT) > 1e-4 ||
+      Math.abs(current.lng - DEFAULT_LNG) > 1e-4
+    ) {
+      setLocation({ lat: DEFAULT_LAT, lng: DEFAULT_LNG, label: DEFAULT_LABEL })
+      resetListControls()
+      await loadRestaurants()
+    }
+  }
+
+  // Same as Cancel: dismiss address edit when clicking/tapping outside the field.
+  useEffect(() => {
+    if (!locationEditAt) return undefined
+    function onPointerDown(e) {
+      const root = locEditRef.current
+      if (!root || root.contains(e.target)) return
+      cancelLocationEdit()
+    }
+    function onKeyDown(e) {
+      if (e.key === 'Escape') cancelLocationEdit()
+    }
+    document.addEventListener('pointerdown', onPointerDown)
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('pointerdown', onPointerDown)
+      document.removeEventListener('keydown', onKeyDown)
+    }
+  }, [locationEditAt])
+
+  async function goBackToPreviousAddress() {
+    if (!restorePreviousLocation()) return
+    closeLocationEdit()
+    resetListControls()
+    await loadRestaurants()
+  }
+
+  async function tryDefaultCity() {
+    closeLocationEdit()
+    setLocation({ lat: DEFAULT_LAT, lng: DEFAULT_LNG, label: DEFAULT_LABEL })
+    resetListControls()
+    await loadRestaurants()
+  }
+
+  const previousLocation = getPreviousLocation()
+  const previousShort = previousLocation
+    ? shortPlaceLabel(previousLocation.label)
+    : null
+
+  const filtered = useMemo(() => {
+    const q = restQuery.trim().toLowerCase()
+    let list = restaurants
+
+    if (activeCat && activeCat !== 'All') {
+      const matchers = CAT_MATCHERS[activeCat] || [
+        new RegExp(activeCat.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'),
+      ]
+      list = list.filter((r) => {
+        const hay = `${r.name} ${r.cuisines}`
+        return matchers.some((re) => re.test(hay))
+      })
+    }
+
+    if (q) {
+      list = list.filter(
+        (r) =>
+          r.name.toLowerCase().includes(q) ||
+          String(r.cuisines).toLowerCase().includes(q),
+      )
+    }
+
+    if (activeFilters.has('offers')) {
+      list = list.filter((r) => Boolean(r.offer))
+    }
+    if (activeFilters.has('rating45')) {
+      list = list.filter((r) => Number(r.rating) >= 4.5)
+    }
+    if (activeFilters.has('veg')) {
+      list = list.filter((r) => r.isVeg === true)
+    }
+    if (activeFilters.has('fast')) {
+      list = list.filter((r) => (r.etaMins || 99) > 0 && r.etaMins <= 30)
+    }
+
+    return sortRestaurants(list, sortBy)
+  }, [restaurants, restQuery, activeCat, activeFilters, sortBy])
+
+  const restSuggest = useMemo(() => {
+    const q = restQuery.trim().toLowerCase()
+    if (q.length < 2) return []
+    return filtered.slice(0, 8)
+  }, [filtered, restQuery])
+
+  const restCount = filtered.length
+  const city = cityFromLabel(placeLabel)
+
+  // Prefetch more when filters leave a thin list but the feed still has pages.
+  useEffect(() => {
+    if (loadingList || loadingMore || !hasMore) return
+    if (restaurants.length === 0) return
+    if (restCount >= PAGE_SIZE) return
+    loadMoreRestaurants()
+  }, [
+    restCount,
+    hasMore,
+    loadingList,
+    loadingMore,
+    restaurants.length,
+    loadMoreRestaurants,
+  ])
+
+  // Smart scroll: load the next API batch when either sentinel enters view.
+  useEffect(() => {
+    if (loadingList || restCount === 0) return undefined
+    const nodes = [desktopSentinelRef.current, mobileSentinelRef.current].filter(
+      Boolean,
+    )
+    if (!nodes.length) return undefined
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          loadMoreRestaurants()
+        }
+      },
+      { root: null, rootMargin: '320px 0px', threshold: 0 },
+    )
+    nodes.forEach((n) => observer.observe(n))
+    return () => observer.disconnect()
+  }, [loadingList, restCount, loadingMore, hasMore, loadMoreRestaurants])
+
+  const filteringWhileLoadingMore =
+    restCount === 0 && restaurants.length > 0 && (hasMore || loadingMore)
+
+  function renderInfiniteFooter(sentinelRef) {
+    if (restCount === 0) return null
+    return (
+      <div className="infinite-load" aria-live="polite">
+        <div
+          className="infinite-load__sentinel"
+          ref={sentinelRef}
+          aria-hidden="true"
+        />
+        {loadingMore ? (
+          <p className="infinite-load__status">Loading more restaurantsâ€¦</p>
+        ) : hasMore ? (
+          <p className="infinite-load__status infinite-load__status--hint">
+            Scroll for more
+          </p>
+        ) : (
+          <p className="infinite-load__status">
+            Showing {restCount} restaurant{restCount === 1 ? '' : 's'}
+          </p>
+        )}
+      </div>
+    )
+  }
+
+  function onWish(r, e) {
+    e.preventDefault()
+    e.stopPropagation()
+    toggleWishlist({ id: r.id, name: r.name, img: r.img })
+    setWishTick((n) => n + 1)
+  }
+
+  const promoRestaurants = filtered.slice(0, 6)
+
+  const filterChips = (
+    <div className="noon-chip-row">
+      <SortByControl sortBy={sortBy} onApply={setSortBy} />
+      {FILTER_CHIPS.map((f) => {
+        const canMatch = filterAvail[f.id]
+        const on = activeFilters.has(f.id)
+        const disabled = !canMatch && !on
+        return (
+          <button
+            key={f.id}
+            type="button"
+            className={`chip ${on ? 'is-active' : ''} ${disabled ? 'is-disabled' : ''}`}
+            aria-pressed={on}
+            disabled={disabled}
+            onClick={() => toggleFilter(f.id)}
+          >
+            <Icon name={f.ic} size={14} /> {f.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+
+  const listBody = loadingList || filteringWhileLoadingMore ? (
+    <p style={{ padding: '48px 0', color: 'var(--color-text-muted)', textAlign: 'center' }}>
+      {filteringWhileLoadingMore ? 'Looking for restaurants that match…' : 'Finding restaurants near you…'}
+    </p>
+  ) : restCount === 0 ? (
+    <div style={{ padding: '48px 16px', textAlign: 'center', maxWidth: 420, margin: '0 auto' }}>
+      <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: 8 }}>
+        {listStatus === 'error'
+          ? 'We couldn’t load restaurants'
+          : restaurants.length > 0
+            ? 'No restaurants match these filters'
+            : 'No restaurants deliver here yet'}
+      </h2>
+      <p style={{ color: 'var(--color-text-secondary)', marginBottom: 16, lineHeight: 1.5 }}>
+        {listStatus === 'error'
+          ? 'Something went wrong on our side. Check your connection and try again.'
+          : restaurants.length > 0
+            ? 'Clear filters or pick All — Offers only appears when a deal is on the restaurant card.'
+            : 'Try another delivery address — many areas outside big cities have limited coverage.'}
+      </p>
+      <div className="empty-loc-actions">
+        {restaurants.length > 0 ? (
+          <button type="button" className="btn btn--primary" onClick={resetListControls}>
+            Clear filters
+          </button>
+        ) : (
+          <>
+            {previousShort ? (
+              <button type="button" className="empty-loc-back" onClick={goBackToPreviousAddress}>
+                <Icon name="back" size={16} />
+                Back to {previousShort}
+              </button>
+            ) : listStatus === 'empty' ? (
+              <button type="button" className="empty-loc-back" onClick={tryDefaultCity}>
+                <Icon name="back" size={16} />
+                Try {DEFAULT_LABEL.split(',')[0]}
+              </button>
+            ) : null}
+            <button type="button" className="btn btn--primary" onClick={() => openLocationEdit('header', '')}>
+              Change delivery address
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  ) : (
+    <>
+      <div className="noon-rest-grid">
+        {filtered.map((r) => (
+          <RestaurantCard key={r.id} restaurant={r} wishTick={wishTick} onWish={onWish} />
+        ))}
+      </div>
+      {renderInfiniteFooter(desktopSentinelRef)}
+    </>
+  )
 
   return (
-    <div style={{ background: 'var(--color-bg)' }}>
-      <div className="only-desktop">
-        <div className="promo-bar">
-          <Icon name="gift" size={18} />
-          Welcome treat! Get ₹50 off your first order.
-        </div>
-
-        <header className="web-header">
-          <Logo />
-          <div className="web-header__center">
-            <button className="location-pill" type="button">
-              <span className="pin">
-                <Icon name="pin" size={16} />
-              </span>
-              Delivering to {placeLabel}
-              <Icon name="chevronDown" size={14} />
-            </button>
-            <label className="field" style={{ flex: 1, minHeight: 44 }}>
-              <span className="field__icon">
-                <Icon name="search" size={18} />
-              </span>
-              <input type="search" placeholder="Search for restaurants, cuisines or dishes" aria-label="Search" />
-            </label>
+    <div className="noon-page noon-discovery">
+      <header className="noon-header noon-header--discovery">
+        <div className="noon-header__inner">
+          <div className="noon-header__left">
+            <Logo className="logo--sm" to="/discovery" />
           </div>
-          <div className="web-header__right">
-            <a className="btn btn--outline" href="#">
-              Log in
-            </a>
-            <a className="btn btn--primary" href="#">
-              Sign up
-            </a>
-            <Link className="cart-btn" to="/restaurant" aria-label="Cart">
+          <div className="noon-header__center" id="discovery-header-search">
+            {locationEditAt ? (
+              <DeliverToControl label={placeLabel} editing onEdit={() => {}}>
+                <div className="web-header__loc-edit" ref={locEditRef} data-place-search style={{ display: 'flex', gap: 8, width: '100%' }}>
+                  <label className="noon-search-field" style={{ flex: 1, position: 'relative' }}>
+                    <Icon name="pin" size={18} />
+                    <input
+                      id="discovery-loc-search"
+                      type="text"
+                      placeholder="Type a new delivery address…"
+                      aria-label="Change delivery address"
+                      value={place.query}
+                      onChange={(e) => place.setQuery(e.target.value)}
+                      onFocus={place.onInputFocus}
+                      autoComplete="off"
+                      autoFocus
+                    />
+                    {place.panelOpen ? (
+                      <PlaceSuggestList
+                        suggestions={place.suggestions}
+                        onSelect={applyPlace}
+                        loading={place.loading}
+                        emptyHint={placeSuggestEmptyHint}
+                      />
+                    ) : null}
+                  </label>
+                  <button type="button" className="btn btn--ghost" onClick={cancelLocationEdit}>
+                    Cancel
+                  </button>
+                </div>
+              </DeliverToControl>
+            ) : (
+              <>
+                <DeliverToControl
+                  label={shortPlaceLabel(placeLabel, 2)}
+                  onEdit={() => openLocationEdit('header', '')}
+                />
+                <label className="noon-search-field" style={{ position: 'relative' }}>
+                  <span className="noon-search-field__icon">
+                    <Icon name="search" size={18} />
+                  </span>
+                  <input
+                    type="search"
+                    placeholder="Search restaurants, dishes & cuisines"
+                    aria-label="Search"
+                    value={restQuery}
+                    onChange={(e) => setRestQuery(e.target.value)}
+                    autoComplete="off"
+                  />
+                  {restSuggest.length > 0 ? (
+                    <ul className="place-suggest" role="listbox" style={{ position: 'absolute', left: 0, right: 0, top: '100%', zIndex: 40, background: '#fff', border: '1px solid var(--color-border)', borderRadius: 8, maxHeight: 280, overflow: 'auto', margin: 0, padding: 0, listStyle: 'none' }}>
+                      {restSuggest.map((r) => (
+                        <li key={r.id} role="option">
+                          <Link to={`/restaurant/${r.id}`} style={{ display: 'block', padding: '10px 14px' }} onClick={() => setRestQuery('')}>
+                            <strong>{r.name}</strong>
+                            <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>{r.cuisines}</div>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </label>
+              </>
+            )}
+          </div>
+          <div className="noon-header__right">
+            <AuthButtons />
+            <Link className="cart-btn" to={restaurants[0] ? `/restaurant/${restaurants[0].id}` : '/discovery'} aria-label="Cart">
               <Icon name="cart" size={20} />
               <span className="cart-btn__badge">{count}</span>
             </Link>
           </div>
-        </header>
+        </div>
+      </header>
 
-        <main className="container" style={{ padding: '0 24px' }}>
-          <nav className="breadcrumb" aria-label="Breadcrumb">
-            <Link to="/">Home</Link> / Bengaluru / Restaurants
-          </nav>
-
-          <div className="discovery-head">
-            <div>
-              <h1>Restaurants near you</h1>
-              <p>Discover great food for every craving.</p>
-            </div>
-            <button className="location-pill" type="button">
-              <span className="pin">
-                <Icon name="pin" size={16} />
-              </span>
-              {placeLabel}
-              <a className="btn btn--ghost" href="#">
-                Change
-              </a>
-            </button>
-          </div>
-
-          <div className="cat-scroll" role="list">
-            {DISCOVERY_CATS.map((c, i) => (
-              <button key={c.name} className={`cat-item ${i === 0 ? 'is-active' : ''}`} type="button" role="listitem">
-                <div className="cat-item__circle">
-                  {c.icon ? <Icon name="grid" size={28} /> : <img src={c.img} alt="" loading="lazy" />}
-                </div>
-                <span>{c.name}</span>
-              </button>
-            ))}
-          </div>
-
-          <div className="filters-row">
-            {filters.map((f) => (
-              <button key={f.label} className="chip" type="button">
-                <Icon name={f.ic} size={14} /> {f.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="restaurant-grid">
-            {restaurants.map((r) => (
-              <Link key={r.id} className="r-card" to={`/restaurant/${r.id}`}>
-                <div className="r-card__img">
-                  <img src={r.img} alt={r.name} loading="lazy" />
-                  <span className="badge r-card__offer">{r.offer}</span>
-                  <span className="r-card__wish" aria-hidden="true">
-                    <Icon name="heart" size={14} />
-                  </span>
-                </div>
-                <div className="r-card__body">
-                  <div className="r-card__top">
-                    <div className="r-card__name">{r.name}</div>
-                    <div className="r-card__rating">
-                      <span className="star">
-                        <Icon name="star" size={12} />
-                      </span>{' '}
-                      {r.rating}
-                    </div>
-                  </div>
-                  <div className="r-card__meta">
-                    <Icon name="clock" size={12} /> {r.time}
-                  </div>
-                  <div className="r-card__cuisines">{r.cuisines.replace(/•/g, ',')}</div>
-                  <div className="r-card__foot">
-                    <span>
-                      <Icon name="bike" size={14} /> {r.promo}
-                    </span>
-                    {r.tag ? <span className={`r-card__tag r-card__tag--${r.tagType}`}>{r.tag}</span> : null}
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-
-          <div className="pagination">
-            <div className="pagination__pages">
-              <button type="button" aria-label="Previous">
-                ‹
-              </button>
-              <button type="button" className="is-active">
-                1
-              </button>
-              <button type="button">2</button>
-              <button type="button">3</button>
-              <button type="button">4</button>
-              <button type="button">5</button>
-              <button type="button" aria-label="Next">
-                ›
-              </button>
-            </div>
-            <span className="pagination__info">
-              Showing 1–{Math.min(8, restCount)} of {restCount} restaurants
-              {usingFallback ? ' (offline demo data)' : ''}
-            </span>
-          </div>
-        </main>
+      <div className="noon-promo-strip" aria-label="Featured">
+        {promoRestaurants.map((r) => (
+          <Link key={`promo-${r.id}`} className="noon-promo-card" to={`/restaurant/${r.id}`}>
+            <img src={r.img} alt="" loading="lazy" />
+            <span className="noon-promo-card__label">{r.name}</span>
+          </Link>
+        ))}
       </div>
 
-      <div className="only-mobile m-page m-page--discovery">
-        <header className="m-header">
-          <Logo className="logo--sm" />
-          <div className="m-header__actions">
-            <button className="m-icon-btn" type="button" aria-label="Wishlist">
-              <Icon name="heart" size={22} />
-            </button>
-            <Link className="m-icon-btn" to="/restaurant" aria-label="Cart">
-              <Icon name="cart" size={22} />
-              <span className="m-badge">{count}</span>
-            </Link>
-          </div>
-        </header>
-
-        <div className="m-loc-row">
-          <div className="m-loc-row__left">
-            <Icon name="pin" size={16} />
-            <span>{placeLabel}</span>
-            <Icon name="chevronDown" size={14} />
-          </div>
-          <a className="m-change" href="#">
-            Change
-          </a>
-        </div>
-
-        <div className="m-search-wrap">
-          <label className="field m-search-field">
-            <span className="field__icon">
-              <Icon name="search" size={18} />
-            </span>
-            <input type="search" placeholder="Search for restaurants, cuisines or dishes" aria-label="Search" />
-          </label>
-        </div>
-
-        <div className="cat-scroll m-cat-scroll">
-          {MOBILE_CATS.map((c, i) => (
+      <section className="noon-section">
+        <h1 className="noon-section__title">Restaurants near you</h1>
+        <p style={{ color: 'var(--color-text-muted)', marginTop: -8, marginBottom: 16, fontSize: 14 }}>
+          {loadingList ? 'Loading…' : `Near ${city}`}
+          {listWishlist().length ? ` · ${listWishlist().length} saved` : ''}
+        </p>
+        {filterChips}
+        <div className="cat-scroll" role="list" style={{ marginBottom: 16 }}>
+          {DISCOVERY_CATS.map((c) => (
             <button
               key={c.name}
-              className={`cat-item ${i === 0 ? 'is-active' : ''} ${c.icon ? 'cat-item--all' : ''}`}
+              className={`cat-item ${activeCat === c.name ? 'is-active' : ''}`}
               type="button"
+              role="listitem"
+              onClick={() => setActiveCat(c.name)}
             >
-              <div className="cat-item__shape">
-                {c.icon ? <Icon name="grid" size={18} /> : <img src={c.img} alt="" loading="lazy" />}
+              <div className="cat-item__circle">
+                {c.icon ? <Icon name="grid" size={28} /> : <img src={c.img} alt="" loading="lazy" />}
               </div>
               <span>{c.name}</span>
             </button>
           ))}
         </div>
+        {listBody}
+      </section>
 
-        <div className="m-filters">
-          {mFilters.map((f) => (
-            <button key={f.label} className={`chip m-filter-chip ${f.color}`} type="button">
-              <Icon name={f.ic} size={14} /> {f.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="m-list-head">
-          <h2>Restaurants near you</h2>
-          <span>{restCount} restaurants</span>
-        </div>
-
-        <div>
-          {restaurants.slice(0, 5).map((r) => (
-            <Link key={r.id} className="m-r-card" to={`/restaurant/${r.id}`}>
-              <div className="m-r-card__img">
-                <img src={r.img} alt={r.name} loading="lazy" />
-                <span className="badge m-r-card__offer">{offerShort(r.offer)}</span>
-                <span className="m-r-card__wish">
-                  <Icon name="heart" size={14} />
-                </span>
-              </div>
-              <div className="m-r-card__body">
-                <div className="m-r-card__name">{r.name}</div>
-                <div className="m-r-card__rating">
-                  <span className="star">
-                    <Icon name="star" size={12} />
-                  </span>
-                  {r.rating}
-                  <span className="m-r-card__reviews">({r.ratings})</span>
-                </div>
-                <div className="m-r-card__meta">
-                  <Icon name="clock" size={12} /> {r.time} · {r.cost}
-                </div>
-                <div className="m-r-card__cuisines">{r.cuisines}</div>
-                <div className="m-r-card__foot">
-                  <span className="m-r-card__promo">
-                    <Icon name="bike" size={13} /> {r.promo}
-                  </span>
-                  {r.tag ? (
-                    <span className={`r-card__tag r-card__tag--${r.tagType}`}>
-                      {r.tagType === 'veg' ? <Icon name="leaf" size={10} /> : null}
-                      {r.tagType === 'best' ? <Icon name="bolt" size={10} /> : null} {r.tag}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
-
-        <nav className="mobile-tabbar" aria-label="Primary">
-          <Link to="/discovery" className="is-active">
-            <Icon name="store" size={20} />
-            <span>Restaurants</span>
-          </Link>
-          <a href="#">
-            <Icon name="bag" size={20} />
-            <span>Offers</span>
-          </a>
-          <a href="#">
-            <Icon name="clipboardList" size={20} />
-            <span>Orders</span>
-          </a>
-          <a href="#">
-            <Icon name="user" size={20} />
-            <span>Account</span>
-          </a>
-        </nav>
-      </div>
+      <BottomNav active="home" />
     </div>
   )
 }
