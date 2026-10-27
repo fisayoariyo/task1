@@ -1,4 +1,4 @@
-/* nomnom design tokens — matched to screen mockups */
+/* TataEats design tokens — matched to screen mockups */
 :root {
   --color-primary: #e91e63;
   --color-primary-hover: #d81b60;
@@ -24,6 +24,10 @@
   --color-nonveg: #d32f2f;
   --color-offer: #e65100;
   --color-star: #e91e63;
+  --color-hero-yellow: #ffd400;
+  --color-offer-chip-bg: #eef8e8;
+  --color-offer-chip-border: #b7d9a8;
+  --color-rating-green: #1b7a3d;
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -52,6 +56,7 @@
   --header-h: 72px;
   --promo-h: 40px;
   --tab-h: 64px;
+  --bottom-nav-h: 56px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
 
   --touch: 44px;
