@@ -16,4 +16,9 @@ export class PlacesController {
   geocode(@Query('placeId') placeId?: string) {
     return this.placesService.geocode(placeId ?? '');
   }
+
+  @Get('reverse')
+  reverse(@Query('lat') lat?: string, @Query('lng') lng?: string) {
+    return this.placesService.reverse(lat ?? '', lng ?? '');
+  }
 }

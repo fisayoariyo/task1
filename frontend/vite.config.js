@@ -4,4 +4,11 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
+  server: {
+    host: '127.0.0.1',
+    proxy: {
+      '/restaurants': 'http://127.0.0.1:3001',
+      '/places': 'http://127.0.0.1:3001',
+    },
+  },
 })

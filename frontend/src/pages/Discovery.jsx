@@ -7,7 +7,7 @@ import { RestaurantCard } from '../components/RestaurantCard'
 import { Icon } from '../components/Icon'
 import { Logo } from '../components/Logo'
 import { PlaceSuggestList } from '../components/PlaceSuggestList'
-import { listRestaurants } from '../lib/api'
+import { listFoodCategories, listRestaurants } from '../lib/api'
 import { peekHttpCache, restaurantsCacheKey } from '../lib/httpCache'
 import { useCart } from '../lib/cart'
 import { DISCOVERY_CATS } from '../lib/data'
@@ -25,7 +25,8 @@ import { mapRestaurantCardFromApi } from '../lib/mappers'
 import { usePlaceAutocomplete } from '../lib/usePlaceAutocomplete'
 import { listWishlist, toggleWishlist } from '../lib/wishlist'
 
-/** Toggle filters — narrow the list. */
+
+/** Compact filter chips under the header (no left filter rail). */
 const FILTER_CHIPS = [
   { id: 'offers', label: 'Offers', ic: 'percent' },
   { id: 'rating45', label: 'Rating 4.5+', ic: 'star' },
@@ -151,11 +152,6 @@ const CAT_MATCHERS = {
   Healthy: [/healthy|salad|juice|bowl/i],
 }
 
-function offerShort(o) {
-  if (/^\d+%\s*OFF/i.test(o)) return o.replace(/\s+up to.*/i, '').trim()
-  return o
-}
-
 function cityFromLabel(label) {
   if (!label) return 'Your area'
   return String(label).split(',')[0].trim() || 'Your area'
@@ -184,6 +180,8 @@ export default function Discovery() {
   const [activeCat, setActiveCat] = useState(() => initialCatFromSearch(searchParams))
   const [activeFilters, setActiveFilters] = useState(() => new Set())
   const [sortBy, setSortBy] = useState('relevance')
+  const [foodLine, setFoodLine] = useState([])
+  const [foodLineLoading, setFoodLineLoading] = useState(true)
   const [wishTick, setWishTick] = useState(0)
   const [hasMore, setHasMore] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -332,6 +330,34 @@ export default function Discovery() {
   useEffect(() => {
     setActiveCat(initialCatFromSearch(searchParams))
   }, [searchParams])
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const { lat, lng } = getLocation()
+      try {
+        const data = await listFoodCategories(lat || DEFAULT_LAT, lng || DEFAULT_LNG)
+        if (cancelled) return
+        const items = Array.isArray(data?.items) ? data.items : []
+        const mapped = items
+          .filter((c) => c?.name && c?.imageUrl)
+          .map((c) => ({
+            id: String(c.id || c.name),
+            name: c.name,
+            imageUrl: c.imageUrl,
+            query: c.query || c.name,
+          }))
+        setFoodLine(mapped)
+      } catch {
+        if (!cancelled) setFoodLine([])
+      } finally {
+        if (!cancelled) setFoodLineLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   async function applyPlace(suggestion) {
     const ok = await place.selectSuggestion(suggestion)
@@ -528,8 +554,6 @@ export default function Discovery() {
     setWishTick((n) => n + 1)
   }
 
-  const promoRestaurants = filtered.slice(0, 6)
-
   const filterChips = (
     <div className="noon-chip-row">
       <SortByControl sortBy={sortBy} onApply={setSortBy} />
@@ -570,7 +594,7 @@ export default function Discovery() {
         {listStatus === 'error'
           ? 'Something went wrong on our side. Check your connection and try again.'
           : restaurants.length > 0
-            ? 'Clear filters or pick All — Offers only appears when a deal is on the restaurant card.'
+            ? 'Clear filters or tap the selected food again — Offers only appears when a deal is on the restaurant card.'
             : 'Try another delivery address — many areas outside big cities have limited coverage.'}
       </p>
       <div className="empty-loc-actions">
@@ -619,8 +643,12 @@ export default function Discovery() {
           <div className="noon-header__center" id="discovery-header-search">
             {locationEditAt ? (
               <DeliverToControl label={placeLabel} editing onEdit={() => {}}>
-                <div className="web-header__loc-edit" ref={locEditRef} data-place-search style={{ display: 'flex', gap: 8, width: '100%' }}>
-                  <label className="noon-search-field" style={{ flex: 1, position: 'relative' }}>
+                <div
+                  className="web-header__loc-edit"
+                  ref={locEditRef}
+                  data-place-search
+                >
+                  <label className="noon-search-field noon-search-field--loc">
                     <Icon name="pin" size={18} />
                     <input
                       id="discovery-loc-search"
@@ -653,7 +681,7 @@ export default function Discovery() {
                   label={shortPlaceLabel(placeLabel, 2)}
                   onEdit={() => openLocationEdit('header', '')}
                 />
-                <label className="noon-search-field" style={{ position: 'relative' }}>
+                <label className="noon-search-field" style={{ position: 'relative', flex: 1 }}>
                   <span className="noon-search-field__icon">
                     <Icon name="search" size={18} />
                   </span>
@@ -666,12 +694,41 @@ export default function Discovery() {
                     autoComplete="off"
                   />
                   {restSuggest.length > 0 ? (
-                    <ul className="place-suggest" role="listbox" style={{ position: 'absolute', left: 0, right: 0, top: '100%', zIndex: 40, background: '#fff', border: '1px solid var(--color-border)', borderRadius: 8, maxHeight: 280, overflow: 'auto', margin: 0, padding: 0, listStyle: 'none' }}>
+                    <ul
+                      className="place-suggest"
+                      role="listbox"
+                      style={{
+                        position: 'absolute',
+                        left: 0,
+                        right: 0,
+                        top: '100%',
+                        zIndex: 40,
+                        background: '#fff',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: 8,
+                        maxHeight: 280,
+                        overflow: 'auto',
+                        margin: 0,
+                        padding: 0,
+                        listStyle: 'none',
+                      }}
+                    >
                       {restSuggest.map((r) => (
                         <li key={r.id} role="option">
-                          <Link to={`/restaurant/${r.id}`} style={{ display: 'block', padding: '10px 14px' }} onClick={() => setRestQuery('')}>
+                          <Link
+                            to={`/restaurant/${r.id}`}
+                            style={{ display: 'block', padding: '10px 14px' }}
+                            onClick={() => setRestQuery('')}
+                          >
                             <strong>{r.name}</strong>
-                            <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>{r.cuisines}</div>
+                            <div
+                              style={{
+                                fontSize: '0.8125rem',
+                                color: 'var(--color-text-muted)',
+                              }}
+                            >
+                              {r.cuisines}
+                            </div>
                           </Link>
                         </li>
                       ))}
@@ -691,40 +748,53 @@ export default function Discovery() {
         </div>
       </header>
 
-      <div className="noon-promo-strip" aria-label="Featured">
-        {promoRestaurants.map((r) => (
-          <Link key={`promo-${r.id}`} className="noon-promo-card" to={`/restaurant/${r.id}`}>
-            <img src={r.img} alt="" loading="lazy" />
-            <span className="noon-promo-card__label">{r.name}</span>
-          </Link>
-        ))}
-      </div>
+      <div className="noon-discovery__body">
+        <section className="noon-section noon-section--discovery">
+          <h1 className="noon-section__title">Restaurants near you</h1>
+          <p className="noon-section__meta">
+            {loadingList ? 'Loading…' : `Near ${city}`}
+            {listWishlist().length ? ` · ${listWishlist().length} saved` : ''}
+          </p>
 
-      <section className="noon-section">
-        <h1 className="noon-section__title">Restaurants near you</h1>
-        <p style={{ color: 'var(--color-text-muted)', marginTop: -8, marginBottom: 16, fontSize: 14 }}>
-          {loadingList ? 'Loading…' : `Near ${city}`}
-          {listWishlist().length ? ` · ${listWishlist().length} saved` : ''}
-        </p>
-        {filterChips}
-        <div className="cat-scroll" role="list" style={{ marginBottom: 16 }}>
-          {DISCOVERY_CATS.map((c) => (
-            <button
-              key={c.name}
-              className={`cat-item ${activeCat === c.name ? 'is-active' : ''}`}
-              type="button"
-              role="listitem"
-              onClick={() => setActiveCat(c.name)}
-            >
-              <div className="cat-item__circle">
-                {c.icon ? <Icon name="grid" size={28} /> : <img src={c.img} alt="" loading="lazy" />}
+          {foodLineLoading || foodLine.length > 0 ? (
+            <div className="food-mind" aria-busy={foodLineLoading || undefined}>
+              <div className="food-mind__row" role="list">
+                {foodLineLoading
+                  ? Array.from({ length: 8 }, (_, i) => (
+                      <div key={`sk-${i}`} className="food-mind__item food-mind__item--skeleton" role="presentation">
+                        <span className="food-mind__img food-mind__img--skeleton" />
+                        <span className="food-mind__label food-mind__label--skeleton" />
+                      </div>
+                    ))
+                  : foodLine.map((c) => {
+                      const on = activeCat === c.name
+                      return (
+                        <button
+                          key={c.id}
+                          type="button"
+                          className={`food-mind__item ${on ? 'is-active' : ''}`}
+                          role="listitem"
+                          aria-pressed={on}
+                          onClick={() => setActiveCat(on ? 'All' : c.name)}
+                        >
+                          <img
+                            className="food-mind__img"
+                            src={c.imageUrl}
+                            alt=""
+                            loading="lazy"
+                          />
+                          <span className="food-mind__label">{c.name}</span>
+                        </button>
+                      )
+                    })}
               </div>
-              <span>{c.name}</span>
-            </button>
-          ))}
-        </div>
-        {listBody}
-      </section>
+            </div>
+          ) : null}
+
+          {filterChips}
+          {listBody}
+        </section>
+      </div>
 
       <BottomNav active="home" />
     </div>
