@@ -1,6 +1,6 @@
 /** Client-side menu item registry so cart can resolve API-loaded dishes by id. */
 
-const KEY = 'nomnom-menu-items'
+const KEY = 'tataeats-menu-items'
 
 function readStore() {
   try {
@@ -24,10 +24,10 @@ export function getCachedMenuItem(id) {
 
 export function flattenMenuDto(menuDto, mapItem) {
   const out = []
-  for (const cat of menuDto.categories ?? []) {
+  ;(menuDto.categories ?? []).forEach((cat, catId) => {
     for (const item of cat.items ?? []) {
-      out.push(mapItem(item, cat.name))
+      out.push(mapItem(item, cat.name, catId))
     }
-  }
+  })
   return out
 }

@@ -24,6 +24,27 @@
   min-height: var(--header-h);
 }
 
+@media (max-width: 767px) {
+  .noon-header--discovery .noon-header__inner {
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    min-height: 0;
+  }
+
+  .noon-header--discovery .noon-header__center {
+    order: 3;
+    flex: 1 1 100%;
+  }
+
+  .noon-header--discovery .noon-header__right .auth-buttons {
+    display: none;
+  }
+
+  .noon-header--discovery .noon-deliver {
+    max-width: 140px;
+  }
+}
+
 .noon-header__left {
   flex-shrink: 0;
 }
@@ -110,6 +131,13 @@
   background: var(--color-surface);
   border-top: 1px solid var(--color-border);
   box-shadow: 0 -4px 16px rgba(26, 26, 26, 0.06);
+}
+
+/* Beat .only-mobile { display: block !important } from responsive.css */
+@media (max-width: 767px) {
+  .noon-bottom-nav.only-mobile {
+    display: grid !important;
+  }
 }
 
 .noon-bottom-nav__item {
@@ -480,12 +508,24 @@
   margin: 0 auto;
 }
 
+.menu-layout--noon {
+  display: grid;
+  grid-template-columns: 1fr minmax(260px, 320px);
+  gap: var(--space-5);
+  align-items: start;
+}
+
+.menu-layout--noon .menu-nav {
+  display: none;
+}
+
 .noon-menu-cats {
   display: flex;
   gap: var(--space-3);
   overflow-x: auto;
   padding: var(--space-2) 0;
   scrollbar-width: thin;
+  margin-bottom: var(--space-3);
 }
 
 .noon-menu-cats__item {

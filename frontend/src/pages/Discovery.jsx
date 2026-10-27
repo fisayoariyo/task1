@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { AuthButtons } from '../components/AuthButtons'
 import { BottomNav } from '../components/BottomNav'
@@ -10,7 +10,7 @@ import { PlaceSuggestList } from '../components/PlaceSuggestList'
 import { listRestaurants } from '../lib/api'
 import { peekHttpCache, restaurantsCacheKey } from '../lib/httpCache'
 import { useCart } from '../lib/cart'
-import { DISCOVERY_CATS, MOBILE_CATS } from '../lib/data'
+import { DISCOVERY_CATS } from '../lib/data'
 import {
   DEFAULT_LABEL,
   DEFAULT_LAT,
@@ -25,7 +25,7 @@ import { mapRestaurantCardFromApi } from '../lib/mappers'
 import { usePlaceAutocomplete } from '../lib/usePlaceAutocomplete'
 import { listWishlist, toggleWishlist } from '../lib/wishlist'
 
-/** Toggle filters â€” narrow the list. */
+/** Toggle filters — narrow the list. */
 const FILTER_CHIPS = [
   { id: 'offers', label: 'Offers', ic: 'percent' },
   { id: 'rating45', label: 'Rating 4.5+', ic: 'star' },
@@ -175,7 +175,7 @@ export default function Discovery() {
   const [searchParams] = useSearchParams()
   const [placeLabel, setPlaceLabel] = useState(() => getLocation().label)
   const [restaurants, setRestaurants] = useState([])
-  /** 'ok' | 'empty' | 'error' â€” real list only; never demo restaurants */
+  /** 'ok' | 'empty' | 'error' — real list only; never demo restaurants */
   const [listStatus, setListStatus] = useState('ok')
   const [loadingList, setLoadingList] = useState(true)
   /** Where the address editor is open: header | page | mobile | null */
@@ -205,7 +205,7 @@ export default function Discovery() {
     setLocationEditAt(at)
     place.setQuery(seedQuery)
     if (at === 'header') {
-      // Address field replaces the top-middle search â€” keep it in view.
+      // Address field replaces the top-middle search — keep it in view.
       requestAnimationFrame(() => {
         document.getElementById('discovery-loc-search')?.scrollIntoView({
           behavior: 'smooth',
@@ -224,7 +224,7 @@ export default function Discovery() {
     place.query.trim().length >= 3 && !place.loading
       ? 'No places match that address. Try a nearby area or landmark.'
       : place.query.trim().length > 0 && place.query.trim().length < 3
-        ? 'Keep typing â€” enter at least 3 letters'
+        ? 'Keep typing — enter at least 3 letters'
         : null
 
   function toggleFilter(id) {
@@ -362,7 +362,7 @@ export default function Discovery() {
         return
       }
     }
-    // Stuck on an empty area with no undo history â€” fall back to default city.
+    // Stuck on an empty area with no undo history — fall back to default city.
     const current = getLocation()
     if (
       Math.abs(current.lat - DEFAULT_LAT) > 1e-4 ||
@@ -507,7 +507,7 @@ export default function Discovery() {
           aria-hidden="true"
         />
         {loadingMore ? (
-          <p className="infinite-load__status">Loading more restaurantsâ€¦</p>
+          <p className="infinite-load__status">Loading more restaurants…</p>
         ) : hasMore ? (
           <p className="infinite-load__status infinite-load__status--hint">
             Scroll for more
@@ -683,7 +683,7 @@ export default function Discovery() {
           </div>
           <div className="noon-header__right">
             <AuthButtons />
-            <Link className="cart-btn" to={restaurants[0] ? `/restaurant/${restaurants[0].id}` : '/discovery'} aria-label="Cart">
+            <Link className="cart-btn" to="/checkout" aria-label="Cart">
               <Icon name="cart" size={20} />
               <span className="cart-btn__badge">{count}</span>
             </Link>

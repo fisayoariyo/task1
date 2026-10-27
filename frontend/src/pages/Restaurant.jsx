@@ -905,24 +905,22 @@ export default function Restaurant() {
               )}
             </section>
           ) : (
-            <div className="menu-layout">
-              <aside className="menu-nav" aria-label="Menu categories">
-                {categoryNav.map((cat) => (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    className={
-                      activeCatId === cat.id && !dishQuery.trim() ? 'is-active' : undefined
-                    }
-                    onClick={() => selectCategory(cat.id)}
-                  >
-                    <span className="menu-nav__label">{cat.name}</span>
-                    <span className="menu-nav__count">{cat.count}</span>
-                  </button>
-                ))}
-              </aside>
-
+            <div className="menu-layout menu-layout--noon">
               <section>
+                <nav className="noon-menu-cats" aria-label="Menu categories">
+                  {categoryNav.map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      className={`noon-menu-cats__item ${
+                        activeCatId === cat.id && !dishQuery.trim() ? 'is-active' : ''
+                      }`}
+                      onClick={() => selectCategory(cat.id)}
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                </nav>
                 <MenuFilterBar {...filterBarProps} />
                 <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: 4 }}>
                   {menuLoading
@@ -1088,6 +1086,12 @@ export default function Restaurant() {
             </button>
           </div>
         </header>
+        <div style={{ padding: '0 12px 8px' }}>
+          <DeliverToControl
+            label={shortPlaceLabel(placeLabel, 2)}
+            onEdit={() => navigate('/discovery')}
+          />
+        </div>
 
         <div className="m-menu-hero">
           <div className="m-menu-hero__top">
