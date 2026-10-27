@@ -228,26 +228,24 @@
   min-width: 0;
 }
 
-/* Soft pink rounded square + cut-out food (labels are HTML only) */
+/* Soft cutout tiles — shadow on the food, not a card */
 .m-cat__img {
   width: 100%;
+  max-width: 88px;
   aspect-ratio: 1;
-  border-radius: 20px;
-  overflow: hidden;
-  background: #fff0f3;
   display: grid;
   place-items: center;
-  padding: 0;
-  isolation: isolate;
+  background: transparent;
+  overflow: visible;
 }
 
 .m-cat__img img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   object-position: center;
-  transform: scale(1.22);
   display: block;
+  filter: drop-shadow(0 8px 14px rgba(2, 6, 12, 0.14));
 }
 
 .m-cat span {
@@ -583,6 +581,7 @@
 
 .m-filters {
   display: flex;
+  align-items: center;
   gap: 8px;
   overflow-x: auto;
   padding: 0 16px 14px;
@@ -591,6 +590,20 @@
 
 .m-filters::-webkit-scrollbar {
   display: none;
+}
+
+.m-filters__label {
+  margin-right: 4px;
+}
+
+.m-filters__sort {
+  z-index: 25;
+}
+
+.m-filters .sort-by__panel {
+  left: 0;
+  right: auto;
+  min-width: 248px;
 }
 
 .m-filter-chip {
@@ -803,9 +816,31 @@
   padding: 3px 8px;
 }
 
-.m-page--discovery .r-card__tag--veg svg {
-  color: #068a26;
-  stroke: #068a26;
+.m-page--discovery .r-card__tag--veg .veg-dot {
+  width: 11px;
+  height: 11px;
+  border-width: 1.25px;
+}
+
+.m-page--discovery .r-card__tag--veg .veg-dot::after {
+  width: 5px;
+  height: 5px;
+}
+
+.m-page--discovery .r-card__tag--best {
+  border-radius: 999px;
+  border: 1px solid var(--color-primary-soft);
+}
+
+.m-page--discovery .r-card__tag--best svg {
+  color: var(--color-primary);
+  fill: var(--color-primary);
+  stroke: none;
+}
+
+.m-page--discovery .infinite-load {
+  margin-top: 16px;
+  padding-bottom: calc(88px + var(--safe-bottom));
 }
 
 .m-page--discovery .mobile-tabbar {
@@ -1042,9 +1077,50 @@
   margin-bottom: -1px;
 }
 
-.m-menu-tabs a.is-active {
+.m-menu-tabs a.is-active,
+.m-menu-tabs button.is-active,
+.m-menu-tabs span.is-active {
   color: var(--color-primary);
   border-bottom-color: var(--color-primary);
+}
+
+.m-menu-tabs button {
+  padding: 12px 0;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  border: none;
+  border-bottom: 2.5px solid transparent;
+  margin-bottom: -1px;
+  background: none;
+  cursor: pointer;
+}
+
+.m-menu-hero .rest-hours {
+  margin: 12px 0 0;
+  padding-top: 4px;
+}
+
+.m-menu-filters {
+  padding: 0 16px 4px;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  background: #fff;
+}
+
+.m-menu-filters .menu-filter-bar {
+  margin-bottom: 8px;
+  padding-bottom: 12px;
+  box-shadow: 0 6px 12px -10px rgba(0, 0, 0, 0.18);
+}
+
+.m-menu-search-summary {
+  margin: 0 16px 10px;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #5a5a66;
 }
 
 .m-cat-pills {
@@ -1067,9 +1143,31 @@
 }
 
 .m-cat-pill.is-active {
-  background: var(--color-primary);
+  background: var(--color-primary-tint, #fce4ec);
   border-color: var(--color-primary);
-  color: #fff;
+  color: var(--color-primary);
+}
+
+.m-cat-pills button {
+  flex-shrink: 0;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid #e4e4e7;
+  background: #fff;
+  color: #5a5a6a;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.m-cat-pills button.is-active {
+  background: var(--color-primary-tint, #fce4ec);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .m-menu-section {

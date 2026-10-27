@@ -14,12 +14,21 @@ export class CachedService {
 
   constructor(@Inject(CACHE_MANAGER) private readonly cache: Cache) {}
 
+  private cacheDisabled(): boolean {
+    const v = (process.env.CACHE_DISABLED ?? '').toLowerCase();
+    return v === '1' || v === 'true' || v === 'yes';
+  }
+
   async wrap<T>(
     key: string,
     softTtlMs: number,
     hardTtlMs: number,
     fn: () => Promise<T>,
   ): Promise<T> {
+    if (this.cacheDisabled()) {
+      return fn();
+    }
+
     const now = Date.now();
     const entry = await this.cache.get<CachedEntry<T>>(key);
 

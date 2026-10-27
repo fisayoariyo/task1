@@ -9,7 +9,7 @@ export function AuthButtons({ className = '' }) {
         title="Coming soon"
         aria-disabled="true"
       >
-        Log in
+        Sign in
       </button>
       <button
         type="button"
@@ -18,7 +18,7 @@ export function AuthButtons({ className = '' }) {
         title="Coming soon"
         aria-disabled="true"
       >
-        Sign up
+        Register
       </button>
     </div>
   )

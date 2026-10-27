@@ -3,8 +3,12 @@ import Checkout from './pages/Checkout'
 import Discovery from './pages/Discovery'
 import Landing from './pages/Landing'
 import Restaurant from './pages/Restaurant'
+import { hasSavedLocation } from './lib/location'
 
 export default function App() {
+  /** Unknown paths: Discovery if address cookie exists, else Landing. */
+  const unknownFallback = hasSavedLocation() ? '/discovery' : '/'
+
   return (
     <Routes>
       <Route path="/" element={<Landing />} />
@@ -22,7 +26,7 @@ export default function App() {
       <Route path="/web/checkout.html" element={<Navigate to="/checkout" replace />} />
       <Route path="/web/checkout" element={<Navigate to="/checkout" replace />} />
 
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to={unknownFallback} replace />} />
     </Routes>
   )
 }

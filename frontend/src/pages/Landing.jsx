@@ -1,12 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { AuthButtons } from '../components/AuthButtons'
-import { BottomNav } from '../components/BottomNav'
 import { Icon } from '../components/Icon'
 import { Logo } from '../components/Logo'
 import { PlaceSuggestList } from '../components/PlaceSuggestList'
 import { listFoodCategories, reverseGeocode } from '../lib/api'
-import { CATEGORIES } from '../lib/data'
 import {
   DEFAULT_LABEL,
   DEFAULT_LAT,
@@ -18,13 +15,55 @@ import {
 } from '../lib/location'
 import { usePlaceAutocomplete } from '../lib/usePlaceAutocomplete'
 
-/** Static fallback if the food-categories API is empty / offline. */
-const FALLBACK_CATS = CATEGORIES.map((c) => ({
-  id: c.name,
-  name: c.name,
-  imageUrl: c.img,
-  query: c.name,
-}))
+/** Popular areas — TataEats India (layout matches Noon UAE columns). */
+const POPULAR_LOCATIONS = [
+  {
+    city: 'Mumbai',
+    areas: ['Andheri', 'Bandra', 'Powai', 'Colaba', 'Worli', 'Juhu', 'Dadar', 'Malad'],
+  },
+  {
+    city: 'Delhi NCR',
+    areas: ['Connaught Place', 'Saket', 'Gurgaon', 'Noida', 'Dwarka', 'Karol Bagh'],
+  },
+  {
+    city: 'Bengaluru',
+    areas: ['Koramangala', 'Indiranagar', 'Whitefield', 'HSR Layout', 'Jayanagar'],
+  },
+  {
+    city: 'Hyderabad',
+    areas: ['Hitech City', 'Banjara Hills', 'Gachibowli', 'Jubilee Hills'],
+  },
+  {
+    city: 'Pune',
+    areas: ['Koregaon Park', 'Hinjewadi', 'Viman Nagar', 'Baner'],
+  },
+  {
+    city: 'Chennai',
+    areas: ['T. Nagar', 'Adyar', 'OMR', 'Anna Nagar'],
+  },
+  {
+    city: 'Kolkata',
+    areas: ['Park Street', 'Salt Lake', 'New Town'],
+  },
+]
+
+const WHY_POINTS = [
+  {
+    title: 'Offers',
+    body: 'Discover unbeatable discounts and exclusive offers on a diverse range of cuisines and dishes.',
+    icon: 'percent',
+  },
+  {
+    title: 'Fast Delivery',
+    body: 'Swift and efficient delivery to bring your favorites to your doorstep as soon as you crave them.',
+    icon: 'bolt',
+  },
+  {
+    title: 'Low Commissions',
+    body: 'Delivering your dishes with the lowest guaranteed commission rates in the region.',
+    icon: 'gift',
+  },
+]
 
 function catDiscoveryPath(cat) {
   const q = encodeURIComponent(cat.query || cat.name)
@@ -36,14 +75,23 @@ export default function Landing() {
   const place = usePlaceAutocomplete()
   const [locating, setLocating] = useState(false)
   const [locateError, setLocateError] = useState('')
-  const [foodCats, setFoodCats] = useState(FALLBACK_CATS)
-  const [foodCatsTitle, setFoodCatsTitle] = useState('Top brands on TataEats')
+  const [foodCats, setFoodCats] = useState([])
   const [foodCatsLoading, setFoodCatsLoading] = useState(true)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const [openCity, setOpenCity] = useState(null)
   const [savedLabel, setSavedLabel] = useState(() =>
     hasSavedLocation() ? getLocation().label || '' : '',
   )
   const [editingAddress, setEditingAddress] = useState(false)
   const showSavedChip = Boolean(savedLabel) && !editingAddress
+
+  function onChangeAddressFromMenu() {
+    setMenuOpen(false)
+    startChangeAddress()
+    requestAnimationFrame(() => {
+      document.getElementById('landing-address-input')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+  }
 
   useEffect(() => {
     if (!hasSavedLocation()) return
@@ -71,20 +119,21 @@ export default function Landing() {
         const data = await listFoodCategories(lat || DEFAULT_LAT, lng || DEFAULT_LNG)
         if (cancelled) return
         const items = Array.isArray(data?.items) ? data.items : []
-        if (items.length) {
-          setFoodCats(
-            items.map((c) => ({
-              id: String(c.id || c.name),
-              name: c.name,
-              imageUrl: c.imageUrl,
-              query: c.query || c.name,
-            })),
-          )
-          if (data.title) setFoodCatsTitle(data.title)
-          else setFoodCatsTitle('Top brands on TataEats')
-        }
+        setFoodCats(
+          items
+            .filter((c) => c?.name && c?.imageUrl)
+            .map((c) => {
+              const name = c.name
+              return {
+                id: String(c.id || name),
+                name,
+                imageUrl: c.imageUrl,
+                query: c.query || name,
+              }
+            }),
+        )
       } catch {
-        /* keep FALLBACK_CATS */
+        if (!cancelled) setFoodCats([])
       } finally {
         if (!cancelled) setFoodCatsLoading(false)
       }
@@ -126,12 +175,7 @@ export default function Landing() {
           if (goToDiscovery) navigate('/discovery')
         } catch {
           const fallback = `Near ${lat.toFixed(4)}, ${lng.toFixed(4)}`
-          setLocation({
-            lat,
-            lng,
-            label: fallback,
-            placeId: `geo:${lat},${lng}`,
-          })
+          setLocation({ lat, lng, label: fallback, placeId: `geo:${lat},${lng}` })
           setSavedLabel(fallback)
           setEditingAddress(false)
           place.setQuery(fallback)
@@ -174,35 +218,83 @@ export default function Landing() {
     await goDiscovery()
   }
 
-  const brandsTitle =
-    foodCatsTitle && /brand|categor|food/i.test(foodCatsTitle)
-      ? foodCatsTitle.includes('TataEats')
-        ? foodCatsTitle
-        : 'Top brands on TataEats'
-      : 'Top brands on TataEats'
+  function pickPopularArea(city, area) {
+    const label = `${area}, ${city}`
+    setLocation({ lat: DEFAULT_LAT, lng: DEFAULT_LNG, label })
+    setSavedLabel(label)
+    navigate('/discovery')
+  }
 
   return (
-    <div className="noon-page noon-landing">
-      <div className="noon-landing-mobile-top only-mobile">
-        <Logo className="logo--sm" />
-      </div>
-
-      <header className="noon-header noon-header--landing only-desktop">
-        <div className="noon-header__inner">
-          <div className="noon-header__left">
-            <Logo />
-          </div>
-          <div className="noon-header__right">
-            <AuthButtons />
-          </div>
-        </div>
+    <div className={`noon-page noon-landing ${menuOpen ? 'is-drawer-open' : ''}`}>
+      <header className="nl-topbar">
+        <button
+          type="button"
+          className="nl-topbar__menu"
+          aria-label="Menu"
+          aria-expanded={menuOpen}
+          onClick={() => setMenuOpen((o) => !o)}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
+        <Logo className="logo--landing" mark={false} />
       </header>
 
-      <section className="noon-landing-hero" aria-label="Choose delivery location">
-        <div className="noon-landing-hero__media" aria-hidden="true">
+      {menuOpen ? (
+        <>
+          <button
+            type="button"
+            className="nl-drawer-backdrop"
+            aria-label="Close menu"
+            onClick={() => setMenuOpen(false)}
+          />
+          <aside className="nl-drawer" role="dialog" aria-label="Menu">
+            <div className="nl-drawer__head">
+              <button
+                type="button"
+                className="nl-topbar__menu"
+                aria-label="Close menu"
+                onClick={() => setMenuOpen(false)}
+              >
+                <span />
+                <span />
+                <span />
+              </button>
+              <Logo className="logo--landing" mark={false} to="/" />
+            </div>
+            <nav className="nl-drawer__nav">
+              <button type="button" className="nl-drawer__link is-active" onClick={() => setMenuOpen(false)}>
+                Home
+              </button>
+              <button type="button" className="nl-drawer__link" onClick={onChangeAddressFromMenu}>
+                Change address
+              </button>
+              <a className="nl-drawer__link" href="#contact" onClick={() => setMenuOpen(false)}>
+                Contact us
+              </a>
+              <a className="nl-drawer__link" href="mailto:partners@tataeats.com">
+                Become a restaurant partner
+              </a>
+            </nav>
+            <div className="nl-drawer__actions">
+              <button type="button" className="nl-drawer__signin" disabled title="Coming soon">
+                Sign in
+              </button>
+              <button type="button" className="nl-drawer__signup" disabled title="Coming soon">
+                Sign Up
+              </button>
+            </div>
+          </aside>
+        </>
+      ) : null}
+
+      <section className="nl-hero" aria-label="Choose delivery location">
+        <div className="nl-hero__media" aria-hidden="true">
           <img src="/assets/hero-bg.jpg" alt="" />
         </div>
-        <div className="noon-landing-card" data-place-search>
+        <div className="nl-card" data-place-search>
           {showSavedChip ? (
             <>
               <div className="loc-chip" role="status">
@@ -219,16 +311,13 @@ export default function Landing() {
                   Change
                 </button>
               </div>
-              <button className="btn btn--primary btn--lg" type="button" onClick={continueWithSaved}>
+              <button className="nl-card__cta" type="button" onClick={continueWithSaved}>
                 View Restaurants
               </button>
             </>
           ) : (
             <>
-              <label className="noon-search-field" style={{ position: 'relative', display: 'flex' }}>
-                <span className="noon-search-field__icon" aria-hidden="true">
-                  <Icon name="search" size={18} />
-                </span>
+              <label className="nl-card__search">
                 <input
                   id="landing-address-input"
                   type="text"
@@ -240,6 +329,9 @@ export default function Landing() {
                   onKeyDown={onAddressKeyDown}
                   autoComplete="off"
                 />
+                <span className="nl-card__search-icon" aria-hidden="true">
+                  <Icon name="search" size={18} />
+                </span>
                 {place.panelOpen ? (
                   <PlaceSuggestList
                     suggestions={place.suggestions}
@@ -255,58 +347,164 @@ export default function Landing() {
                   />
                 ) : null}
               </label>
-              <button className="btn btn--primary btn--lg" type="button" onClick={goDiscovery}>
+              <button className="nl-card__cta" type="button" onClick={goDiscovery}>
                 View Restaurants
               </button>
-              <div className="hero__loc-actions" style={{ justifyContent: 'center' }}>
-                {savedLabel ? (
-                  <button type="button" className="hero__use-saved" onClick={() => setEditingAddress(false)}>
-                    Use saved: {shortPlaceLabel(savedLabel, 2)}
-                  </button>
-                ) : null}
-                <button
-                  className="hero__locate"
-                  type="button"
-                  disabled={locating}
-                  onClick={() => locateMe({ goToDiscovery: true })}
-                >
-                  <Icon name="locate" size={16} />
-                  {locating ? 'Getting your location…' : 'Use my current location'}
-                </button>
-              </div>
+              <button
+                type="button"
+                className="nl-card__locate"
+                disabled={locating}
+                onClick={() => locateMe({ goToDiscovery: true })}
+              >
+                {locating ? 'Getting location…' : 'Use my current location'}
+              </button>
             </>
           )}
-          {locateError ? (
-            <p className="hero__hint" style={{ color: 'var(--color-primary)', margin: 0 }}>
-              {locateError}
-            </p>
-          ) : null}
-          <p className="noon-landing-card__auth">
-            <button type="button" className="btn btn--outline" disabled title="Coming soon">
-              Log in
+          {locateError ? <p className="nl-card__error">{locateError}</p> : null}
+          <p className="nl-card__login">
+            <button type="button" className="nl-card__login-link" disabled title="Coming soon">
+              Log In
             </button>{' '}
             for your recent addresses
           </p>
         </div>
       </section>
 
-      <section className="noon-brands" aria-busy={foodCatsLoading || undefined}>
-        <h2 className="noon-brands__title">{brandsTitle}</h2>
-        <div className="noon-brands__row">
-          {foodCats.map((c) => (
-            <Link key={c.id} className="noon-brand-circle" to={catDiscoveryPath(c)}>
-              <img className="noon-brand-circle__img" src={c.imageUrl} alt="" loading="lazy" />
-              <span className="noon-brand-circle__name">{c.name}</span>
-            </Link>
+      <section className="nl-brands" aria-busy={foodCatsLoading || undefined}>
+        <h2 className="nl-brands__title">Popular foods on TataEats</h2>
+        <div className="nl-brands__row" role="list">
+          {foodCatsLoading
+            ? Array.from({ length: 8 }, (_, i) => (
+                <div key={`sk-${i}`} className="nl-brand nl-brand--skeleton" role="presentation">
+                  <span className="nl-brand__circle" />
+                  <span className="nl-brand__name nl-brand__name--skeleton" />
+                </div>
+              ))
+            : foodCats.map((c) => (
+                <Link
+                  key={c.id}
+                  className="nl-brand"
+                  to={catDiscoveryPath(c)}
+                  role="listitem"
+                  aria-label={c.name}
+                >
+                  <span className="nl-brand__circle nl-brand__circle--tile">
+                    <img src={c.imageUrl} alt="" loading="lazy" />
+                  </span>
+                  <span className="nl-brand__name">{c.name}</span>
+                </Link>
+              ))}
+        </div>
+      </section>
+
+      <section className="nl-why">
+        <div className="nl-why__inner">
+          <div className="nl-why__media">
+            <img src="/assets/partner-wok.jpg" alt="Food delivery on TataEats" />
+          </div>
+          <div className="nl-why__copy">
+            <h2>Why TataEats?</h2>
+            <ul className="nl-why__list">
+              {WHY_POINTS.map((p) => (
+                <li key={p.title}>
+                  <span className="nl-why__icon" aria-hidden="true">
+                    <Icon name={p.icon} size={22} />
+                  </span>
+                  <div>
+                    <strong>{p.title}</strong>
+                    <p>{p.body}</p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section className="nl-locations">
+        <h2>Popular locations in India</h2>
+        {/* Mobile: accordion (Noon mobile) */}
+        <div className="nl-locations__accordion only-mobile">
+          {POPULAR_LOCATIONS.map((col) => {
+            const open = openCity === col.city
+            return (
+              <div key={col.city} className={`nl-acc ${open ? 'is-open' : ''}`}>
+                <button
+                  type="button"
+                  className="nl-acc__trigger"
+                  aria-expanded={open}
+                  onClick={() => setOpenCity(open ? null : col.city)}
+                >
+                  <span>{col.city}</span>
+                  <span className="nl-acc__chev" aria-hidden="true">
+                    ▾
+                  </span>
+                </button>
+                {open ? (
+                  <ul className="nl-acc__panel">
+                    {col.areas.map((area) => (
+                      <li key={area}>
+                        <button type="button" onClick={() => pickPopularArea(col.city, area)}>
+                          {area}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+              </div>
+            )
+          })}
+        </div>
+        {/* Desktop: multi-column */}
+        <div className="nl-locations__grid only-desktop">
+          {POPULAR_LOCATIONS.map((col) => (
+            <div key={col.city} className="nl-locations__col">
+              <h3>{col.city}</h3>
+              <ul>
+                {col.areas.map((area) => (
+                  <li key={area}>
+                    <button type="button" onClick={() => pickPopularArea(col.city, area)}>
+                      {area}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
         </div>
       </section>
 
-      <footer className="only-desktop" style={{ padding: '24px 16px 48px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: 13 }}>
-        © 2026 TataEats. All rights reserved.
+      <footer className="nl-footer" id="contact">
+        <div className="nl-footer__stores">
+          <button type="button" className="nl-store-btn" disabled title="Coming soon">
+            <span className="nl-store-btn__glyph" aria-hidden="true">
+              &#63743;
+            </span>
+            <span className="nl-store-btn__text">
+              <small>Coming soon on the</small>
+              <strong>App Store</strong>
+            </span>
+          </button>
+          <button type="button" className="nl-store-btn" disabled title="Coming soon">
+            <span className="nl-store-btn__glyph nl-store-btn__glyph--play" aria-hidden="true">
+              ▶
+            </span>
+            <span className="nl-store-btn__text">
+              <small>Coming soon on</small>
+              <strong>Google Play</strong>
+            </span>
+          </button>
+        </div>
+        <p className="nl-footer__copy">© 2026 TataEats. All Rights Reserved</p>
+        <p className="nl-footer__legal">
+          <a href="#">Terms of Use</a>
+          <a href="#">Privacy Policy</a>
+        </p>
+        <p className="nl-footer__contact">
+          Contact us:{' '}
+          <a href="mailto:hello@tataeats.com">hello@tataeats.com</a>
+        </p>
       </footer>
-
-      <BottomNav active="home" />
     </div>
   )
 }

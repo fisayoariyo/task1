@@ -1,6 +1,7 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { CachedService } from '../cache/cached.service';
 import {
+  FoodCategoriesDto,
   MenuDto,
   RestaurantCard,
   RestaurantSource,
@@ -11,6 +12,9 @@ const LIST_SOFT_TTL_MS = 300_000;
 const LIST_HARD_TTL_MS = 900_000;
 const MENU_SOFT_TTL_MS = 600_000;
 const MENU_HARD_TTL_MS = 1_800_000;
+/** Short TTL — categories rotate by time of day. */
+const FOOD_CAT_SOFT_TTL_MS = 180_000;
+const FOOD_CAT_HARD_TTL_MS = 600_000;
 
 function roundCoord(value: number): number {
   return Math.round(value * 1000) / 1000;
@@ -58,6 +62,22 @@ export class RestaurantsService {
     const key = `menu:${restaurantId}`;
     return this.cached.wrap(key, MENU_SOFT_TTL_MS, MENU_HARD_TTL_MS, () =>
       this.source.getMenu(restaurantId, lat, lng),
+    );
+  }
+
+  async listFoodCategories(
+    latRaw: string,
+    lngRaw: string,
+  ): Promise<FoodCategoriesDto> {
+    const lat = roundCoord(parseRequiredCoord(latRaw, 'lat'));
+    const lng = roundCoord(parseRequiredCoord(lngRaw, 'lng'));
+    const hour = new Date().getHours();
+    const key = `foodcats:${lat}:${lng}:${hour}`;
+    return this.cached.wrap(
+      key,
+      FOOD_CAT_SOFT_TTL_MS,
+      FOOD_CAT_HARD_TTL_MS,
+      () => this.source.listFoodCategories(lat, lng),
     );
   }
 }

@@ -15,6 +15,17 @@ describe('CachedService', () => {
 
   afterEach(() => {
     jest.useRealTimers();
+    delete process.env.CACHE_DISABLED;
+  });
+
+  it('bypasses cache when CACHE_DISABLED=true', async () => {
+    process.env.CACHE_DISABLED = 'true';
+    const fn = jest.fn().mockResolvedValueOnce('a').mockResolvedValueOnce('b');
+    const first = await service.wrap('bypass-key', 60_000, 120_000, fn);
+    const second = await service.wrap('bypass-key', 60_000, 120_000, fn);
+    expect(first).toBe('a');
+    expect(second).toBe('b');
+    expect(fn).toHaveBeenCalledTimes(2);
   });
 
   it('returns cached value on hit without calling fn again', async () => {

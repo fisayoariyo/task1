@@ -1,15 +1,150 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { AuthButtons } from '../components/AuthButtons'
 import { Icon } from '../components/Icon'
 import { Logo } from '../components/Logo'
 import { useCart } from '../lib/cart'
+import { guestContactLabel, readGuestContact, writeGuestContact } from '../lib/guest'
+import { getLocation } from '../lib/location'
+
+function makeDemoOrderId() {
+  return `DEMO-${Date.now().toString(36).toUpperCase()}`
+}
 
 export default function Checkout() {
-  const { lines, itemTotal, count, changeQty } = useCart()
+  const { lines, itemTotal, count, changeQty, clear } = useCart()
   const [instr, setInstr] = useState('door')
+  const [note, setNote] = useState('')
+  const [contact, setContact] = useState(() =>
+    typeof window === 'undefined' ? { name: '', phone: '' } : readGuestContact(),
+  )
+  const [editingContact, setEditingContact] = useState(false)
+  const [draftName, setDraftName] = useState(contact.name)
+  const [draftPhone, setDraftPhone] = useState(contact.phone)
+  const [contactError, setContactError] = useState('')
+  const [placed, setPlaced] = useState(null)
+
+  const placeLabel = getLocation().label
   const platform = 5
   const delivery = itemTotal >= 199 ? 0 : 40
   const grand = itemTotal + platform + delivery
+  const shortPlace = placeLabel.split(',').slice(0, 2).join(',').trim() || placeLabel
+
+  function openEditContact() {
+    setDraftName(contact.name)
+    setDraftPhone(contact.phone)
+    setContactError('')
+    setEditingContact(true)
+  }
+
+  function saveContact() {
+    const name = draftName.trim()
+    const phone = draftPhone.trim()
+    if (!name || !phone) {
+      setContactError('Name and phone are required.')
+      return
+    }
+    const next = writeGuestContact({ name, phone })
+    setContact(next)
+    setEditingContact(false)
+    setContactError('')
+  }
+
+  function placeDemoOrder() {
+    if (!lines.length) return
+    const name = contact.name.trim()
+    const phone = contact.phone.trim()
+    if (!name || !phone) {
+      setContactError('Add your name and phone before placing the order.')
+      setEditingContact(true)
+      setDraftName(name)
+      setDraftPhone(phone)
+      return
+    }
+    const order = {
+      id: makeDemoOrderId(),
+      grand,
+      count,
+      placeLabel,
+      contact: { name, phone },
+      instr,
+      note: note.trim(),
+    }
+    clear()
+    setPlaced(order)
+  }
+
+  if (placed) {
+    return (
+      <div style={{ background: 'var(--color-bg)', minHeight: '100vh' }}>
+        <div className="only-desktop">
+          <header className="web-header">
+            <Logo />
+            <div className="web-header__right">
+              <AuthButtons />
+            </div>
+          </header>
+          <main className="container" style={{ maxWidth: 560, padding: '48px 24px' }}>
+            <div className="cart-box dck-card" style={{ textAlign: 'center', padding: 32 }}>
+              <Icon name="bag" size={40} />
+              <h1 style={{ fontSize: '1.5rem', fontWeight: 800, margin: '16px 0 8px' }}>
+                Order placed (demo)
+              </h1>
+              <p style={{ color: 'var(--color-text-muted)', marginBottom: 16 }}>
+                No payment was taken. This is a test confirmation only.
+              </p>
+              <p>
+                <strong>Order ID:</strong> {placed.id}
+              </p>
+              <p style={{ marginTop: 8 }}>
+                <strong>Total:</strong> ₹{placed.grand} · {placed.count} item
+                {placed.count === 1 ? '' : 's'}
+              </p>
+              <p style={{ marginTop: 8, color: 'var(--color-text-muted)' }}>
+                Deliver to {placed.placeLabel}
+              </p>
+              <p style={{ marginTop: 4, color: 'var(--color-text-muted)' }}>
+                {placed.contact.name} · {placed.contact.phone}
+              </p>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 28, flexWrap: 'wrap' }}>
+                <Link className="btn btn--primary" to="/discovery">
+                  Back to restaurants
+                </Link>
+                <Link className="btn btn--outline" to="/">
+                  Home
+                </Link>
+              </div>
+            </div>
+          </main>
+        </div>
+
+        <div className="only-mobile m-page">
+          <header className="m-header">
+            <Link className="m-icon-btn" to="/" aria-label="Home">
+              <Icon name="back" size={22} />
+            </Link>
+            <strong>Order confirmed</strong>
+            <span style={{ width: 44 }} />
+          </header>
+          <div className="m-content" style={{ padding: 24, textAlign: 'center' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: 8 }}>
+              Order placed (demo)
+            </h2>
+            <p style={{ color: 'var(--color-text-muted)', marginBottom: 16 }}>
+              No payment was taken.
+            </p>
+            <p>
+              <strong>{placed.id}</strong>
+            </p>
+            <p style={{ marginTop: 8 }}>₹{placed.grand}</p>
+            <Link className="btn btn--primary btn--block" to="/discovery" style={{ marginTop: 24 }}>
+              Back to restaurants
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div style={{ background: 'var(--color-bg)' }}>
@@ -22,11 +157,11 @@ export default function Checkout() {
         <header className="web-header">
           <Logo />
           <div className="web-header__center">
-            <button className="location-pill" type="button">
+            <button className="location-pill" type="button" title={placeLabel}>
               <span className="pin">
                 <Icon name="pin" size={16} />
               </span>
-              Koramangala, Bengaluru
+              <span className="location-pill__label">{shortPlace}</span>
               <Icon name="chevronDown" size={14} />
             </button>
             <label className="field" style={{ flex: 1, minHeight: 44 }}>
@@ -37,12 +172,7 @@ export default function Checkout() {
             </label>
           </div>
           <div className="web-header__right">
-            <a className="btn btn--outline" href="#">
-              Log in
-            </a>
-            <a className="btn btn--primary" href="#">
-              Sign up
-            </a>
+            <AuthButtons />
             <Link className="cart-btn" to="/checkout" aria-label="Cart">
               <Icon name="cart" size={20} />
               <span className="cart-btn__badge">{count}</span>
@@ -52,21 +182,19 @@ export default function Checkout() {
 
         <main className="container dck">
           <nav className="breadcrumb">
-            <Link to="/">Home</Link> / <Link to="/discovery">Restaurants</Link> /{' '}
-            <Link to="/restaurant">Royal Biryani House</Link> / Checkout
+            <Link to="/">Home</Link> / <Link to="/discovery">Restaurants</Link> / Checkout
           </nav>
 
           <div className="dck-eta">
             <div className="dck-eta__from">
               <div className="dck-eta__avatar">
-                <img src="https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=200&q=80" alt="" />
                 <span className="dck-eta__badge">
                   <Icon name="store" size={14} />
                 </span>
               </div>
               <div>
-                <strong>Royal Biryani House</strong>
-                <span>Koramangala, Bengaluru</span>
+                <strong>{count ? `${count} item${count === 1 ? '' : 's'} in cart` : 'Your cart'}</strong>
+                <span>From restaurants near you</span>
               </div>
             </div>
             <div className="dck-eta__mid">
@@ -83,8 +211,8 @@ export default function Checkout() {
                 <Icon name="home" size={18} />
               </div>
               <div>
-                <strong>Deliver to Home</strong>
-                <span>Koramangala, Bengaluru</span>
+                <strong>Deliver to</strong>
+                <span title={placeLabel}>{shortPlace}</span>
               </div>
             </div>
           </div>
@@ -94,20 +222,66 @@ export default function Checkout() {
               <section className="cart-box dck-card">
                 <h3 className="dck-card__title">Delivery address</h3>
                 <div className="dck-addr">
-                  <span className="tag-home">Home</span>
-                  <p>Flat 302, Lakeview Residency, 80 Feet Road, Koramangala, Bengaluru 560034</p>
-                  <a className="ck-link" href="#">
+                  <span className="tag-home">Saved</span>
+                  <p title={placeLabel}>{placeLabel}</p>
+                  <Link className="ck-link" to="/discovery">
                     Change
-                  </a>
+                  </Link>
                 </div>
                 <div className="dck-contact">
-                  <span className="addr-contact__who">
-                    <Icon name="phoneCall" size={16} /> Adefisayomi · +91 90000 00000
-                  </span>
-                  <a className="ck-link" href="#">
-                    Edit
-                  </a>
+                  {editingContact ? (
+                    <div style={{ flex: 1, display: 'grid', gap: 8 }}>
+                      <label className="field" style={{ minHeight: 40 }}>
+                        <input
+                          type="text"
+                          value={draftName}
+                          onChange={(e) => setDraftName(e.target.value)}
+                          placeholder="Your name"
+                          aria-label="Your name"
+                        />
+                      </label>
+                      <label className="field" style={{ minHeight: 40 }}>
+                        <input
+                          type="tel"
+                          value={draftPhone}
+                          onChange={(e) => setDraftPhone(e.target.value)}
+                          placeholder="Phone number"
+                          aria-label="Phone number"
+                        />
+                      </label>
+                      {contactError ? (
+                        <p style={{ color: 'var(--color-danger, #c00)', fontSize: 13 }}>{contactError}</p>
+                      ) : null}
+                      <div style={{ display: 'flex', gap: 12 }}>
+                        <button type="button" className="ck-link" onClick={saveContact}>
+                          Save
+                        </button>
+                        <button
+                          type="button"
+                          className="ck-link"
+                          onClick={() => {
+                            setEditingContact(false)
+                            setContactError('')
+                          }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="addr-contact__who">
+                        <Icon name="phoneCall" size={16} /> {guestContactLabel(contact)}
+                      </span>
+                      <button type="button" className="ck-link" onClick={openEditContact}>
+                        Edit
+                      </button>
+                    </>
+                  )}
                 </div>
+                {!editingContact && contactError ? (
+                  <p style={{ color: 'var(--color-danger, #c00)', fontSize: 13, marginTop: 8 }}>{contactError}</p>
+                ) : null}
               </section>
 
               <section className="cart-box dck-card">
@@ -127,19 +301,25 @@ export default function Checkout() {
                   <span className="note-field__icon">
                     <Icon name="pin" size={16} />
                   </span>
-                  <input type="text" placeholder="Add landmark / delivery note (optional)" aria-label="Delivery note" />
+                  <input
+                    type="text"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="Add landmark / delivery note (optional)"
+                    aria-label="Delivery note"
+                  />
                 </label>
               </section>
 
               <section className="cart-box dck-card">
                 <h3 className="dck-card__title">Offers &amp; coupons</h3>
                 <label className="offer-box">
-                  <input type="radio" name="offer-d" className="offer-box__radio" aria-label="Use NOMNOM50" />
+                  <input type="radio" name="offer-d" className="offer-box__radio" aria-label="Use TATA50" />
                   <div className="offer-box__body">
                     <strong className="offer-box__title">
-                      Use <span className="offer-box__code">NOMNOM50</span> · Save ₹50
+                      Use <span className="offer-box__code">TATA50</span> · Save ₹50
                     </strong>
-                    <span className="offer-box__sub">Get ₹50 off on orders above ₹500</span>
+                    <span className="offer-box__sub">Demo offer · not applied to total yet</span>
                   </div>
                   <span className="offer-box__tag">Available offer</span>
                 </label>
@@ -147,6 +327,9 @@ export default function Checkout() {
 
               <section className="cart-box dck-card">
                 <h3 className="dck-card__title">Choose payment method</h3>
+                <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 12 }}>
+                  Demo mode — no real charge.
+                </p>
                 <div className="pay-list">
                   <label className="pay-row">
                     <input type="radio" name="pay-d" defaultChecked />
@@ -185,8 +368,11 @@ export default function Checkout() {
             <aside className="dck-side">
               <div className="cart-box dck-card">
                 <h3 className="dck-card__title">Order summary</h3>
+                {!lines.length ? (
+                  <p style={{ color: 'var(--color-text-muted)' }}>Your cart is empty.</p>
+                ) : null}
                 {lines.map((l) => (
-                  <div className="cart-line" key={l.id}>
+                  <div className="cart-line" key={l.lineKey || l.id}>
                     <div className="cart-line__img">
                       <img src={l.img} alt="" />
                     </div>
@@ -195,13 +381,18 @@ export default function Checkout() {
                         {l.veg ? <span className="veg-dot" /> : <span className="nonveg-dot" />}
                         <span>{l.name}</span>
                       </div>
+                      {l.customisation?.length ? (
+                        <p className="cart-line__custom">
+                          {l.customisation.map((c) => c.choiceName).join(', ')}
+                        </p>
+                      ) : null}
                       <div className="cart-line__row">
                         <div className="qty qty--sheet">
-                          <button type="button" onClick={() => changeQty(l.id, -1)}>
+                          <button type="button" onClick={() => changeQty(l.lineKey || l.id, -1)}>
                             −
                           </button>
                           <span>{l.qty}</span>
-                          <button type="button" onClick={() => changeQty(l.id, 1)}>
+                          <button type="button" onClick={() => changeQty(l.lineKey || l.id, 1)}>
                             +
                           </button>
                         </div>
@@ -228,7 +419,12 @@ export default function Checkout() {
                   <span>To pay</span>
                   <span>₹{grand}</span>
                 </div>
-                <button className="btn btn--primary btn--block btn--lg" type="button">
+                <button
+                  className="btn btn--primary btn--block btn--lg"
+                  type="button"
+                  disabled={!lines.length}
+                  onClick={placeDemoOrder}
+                >
                   Place order · ₹{grand}
                 </button>
               </div>
@@ -248,9 +444,46 @@ export default function Checkout() {
 
         <div className="m-content" style={{ paddingBottom: 120 }}>
           <section className="cart-box" style={{ margin: 16 }}>
+            <h3>Contact</h3>
+            {editingContact ? (
+              <div style={{ display: 'grid', gap: 8 }}>
+                <input
+                  type="text"
+                  value={draftName}
+                  onChange={(e) => setDraftName(e.target.value)}
+                  placeholder="Your name"
+                  aria-label="Your name"
+                  style={{ padding: 10, borderRadius: 8, border: '1px solid var(--color-border)' }}
+                />
+                <input
+                  type="tel"
+                  value={draftPhone}
+                  onChange={(e) => setDraftPhone(e.target.value)}
+                  placeholder="Phone number"
+                  aria-label="Phone number"
+                  style={{ padding: 10, borderRadius: 8, border: '1px solid var(--color-border)' }}
+                />
+                {contactError ? (
+                  <p style={{ color: 'var(--color-danger, #c00)', fontSize: 13 }}>{contactError}</p>
+                ) : null}
+                <button type="button" className="btn btn--primary" onClick={saveContact}>
+                  Save contact
+                </button>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                <span>{guestContactLabel(contact)}</span>
+                <button type="button" className="ck-link" onClick={openEditContact}>
+                  Edit
+                </button>
+              </div>
+            )}
+          </section>
+
+          <section className="cart-box" style={{ margin: 16 }}>
             <h3>Your items</h3>
             {lines.map((l) => (
-              <div className="cart-line" key={l.id}>
+              <div className="cart-line" key={l.lineKey || l.id}>
                 <div className="cart-line__img">
                   <img src={l.img} alt="" />
                 </div>
@@ -259,13 +492,18 @@ export default function Checkout() {
                     {l.veg ? <span className="veg-dot" /> : <span className="nonveg-dot" />}
                     <span>{l.name}</span>
                   </div>
+                  {l.customisation?.length ? (
+                    <p className="cart-line__custom">
+                      {l.customisation.map((c) => c.choiceName).join(', ')}
+                    </p>
+                  ) : null}
                   <div className="cart-line__row">
                     <div className="qty qty--sheet">
-                      <button type="button" onClick={() => changeQty(l.id, -1)}>
+                      <button type="button" onClick={() => changeQty(l.lineKey || l.id, -1)}>
                         −
                       </button>
                       <span>{l.qty}</span>
-                      <button type="button" onClick={() => changeQty(l.id, 1)}>
+                      <button type="button" onClick={() => changeQty(l.lineKey || l.id, 1)}>
                         +
                       </button>
                     </div>
@@ -278,6 +516,7 @@ export default function Checkout() {
 
           <section className="cart-box" style={{ margin: 16 }}>
             <h3>Payment</h3>
+            <p style={{ fontSize: 13, color: 'var(--color-text-muted)', marginBottom: 8 }}>Demo — no real charge</p>
             <label className="pay-row">
               <input type="radio" name="pay-m" defaultChecked />
               <span className="pay-row__icon">
@@ -321,7 +560,12 @@ export default function Checkout() {
         </div>
 
         <div style={{ position: 'fixed', left: 0, right: 0, bottom: 0, padding: 16, background: '#fff', borderTop: '1px solid var(--color-border)' }}>
-          <button className="btn btn--primary btn--block btn--lg" type="button">
+          <button
+            className="btn btn--primary btn--block btn--lg"
+            type="button"
+            disabled={!lines.length}
+            onClick={placeDemoOrder}
+          >
             Place order · ₹{grand}
           </button>
         </div>

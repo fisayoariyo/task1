@@ -12,15 +12,18 @@ import {
   restaurantsCacheKey,
 } from './httpCache'
 
-const BASE = (import.meta.env.VITE_API_URL || 'http://localhost:3001').replace(
-  /\/$/,
-  '',
-)
+/** Empty VITE_API_URL → same-origin (Vite proxy in dev). */
+const BASE = String(
+  import.meta.env.VITE_API_URL !== undefined && import.meta.env.VITE_API_URL !== null
+    ? import.meta.env.VITE_API_URL
+    : 'http://localhost:3001',
+).replace(/\/$/, '')
 
 async function getJson(path, params = {}) {
   // Do not use `new URL('/x', baseWithPath)` — a leading "/" replaces the base path
   // (e.g. https://tataeats.com/api + /places → https://tataeats.com/places).
-  const url = new URL(`${BASE}${path.startsWith('/') ? path : `/${path}`}`)
+  const rel = path.startsWith('/') ? path : `/${path}`
+  const url = BASE ? new URL(`${BASE}${rel}`) : new URL(rel, window.location.origin)
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== null && value !== '') {
       url.searchParams.set(key, String(value))

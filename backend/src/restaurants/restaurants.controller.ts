@@ -16,6 +16,12 @@ export class RestaurantsController {
     return this.restaurantsService.listRestaurants(lat, lng, offset);
   }
 
+  /** Time-aware cuisine tiles for landing (Swiggy “mind” widgets / mock slots). */
+  @Get('food-categories')
+  foodCategories(@Query('lat') lat: string, @Query('lng') lng: string) {
+    return this.restaurantsService.listFoodCategories(lat, lng);
+  }
+
   @Get(':id/menu')
   menu(
     @Param('id') id: string,

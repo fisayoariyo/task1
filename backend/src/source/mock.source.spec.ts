@@ -33,4 +33,13 @@ describe('MockSource', () => {
     const menu = await src.getMenu(listId, 19.076, 72.877);
     expect(menu.categories[0].items[0].price).toBeLessThan(10000); // not paise
   });
+
+  it('listFoodCategories returns time-slotted tiles', async () => {
+    const dto = await src.listFoodCategories(19.076, 72.877);
+    expect(dto.items.length).toBeGreaterThan(0);
+    expect(dto.items[0].name).toBeTruthy();
+    expect(dto.items[0].imageUrl).toMatch(/^https?:\/\//);
+    expect(dto.hour).toBeGreaterThanOrEqual(0);
+    expect(dto.hour).toBeLessThan(24);
+  });
 });
