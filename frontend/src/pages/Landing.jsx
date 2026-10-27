@@ -1,470 +1,313 @@
+import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { AuthButtons } from '../components/AuthButtons'
+import { BottomNav } from '../components/BottomNav'
+/* AuthButtons still used in desktop header */
 import { Icon } from '../components/Icon'
 import { Logo } from '../components/Logo'
 import { PlaceSuggestList } from '../components/PlaceSuggestList'
+import { listFoodCategories, reverseGeocode } from '../lib/api'
 import { CATEGORIES } from '../lib/data'
-import { DEFAULT_LABEL, DEFAULT_LAT, DEFAULT_LNG, setLocation } from '../lib/location'
+import {
+  DEFAULT_LABEL,
+  DEFAULT_LAT,
+  DEFAULT_LNG,
+  getLocation,
+  hasSavedLocation,
+  setLocation,
+  shortPlaceLabel,
+} from '../lib/location'
 import { usePlaceAutocomplete } from '../lib/usePlaceAutocomplete'
 
-/** Cut-out cuisine tiles on soft pink (no SS crops — avoids seam/ghost labels) */
-const mobileCats = [
-  { name: 'Biryani', img: '/assets/cats/biryani.png?v=13' },
-  { name: 'Pizza', img: '/assets/cats/pizza.png?v=13' },
-  { name: 'Burgers', img: '/assets/cats/burgers.png?v=13' },
-  { name: 'North Indian', img: '/assets/cats/north.png?v=13' },
-  { name: 'South Indian', img: '/assets/cats/south.png?v=13' },
-  { name: 'Chinese', img: '/assets/cats/chinese.jpg?v=13' },
-  { name: 'Rolls & Wraps', img: '/assets/cats/rolls.jpg?v=13' },
-  { name: 'Desserts', img: '/assets/cats/desserts.jpg?v=13' },
-]
+/** Static fallback if the food-categories API is empty / offline. */
+const FALLBACK_CATS = CATEGORIES.map((c) => ({
+  id: c.name,
+  name: c.name,
+  imageUrl: c.img,
+  query: c.name,
+}))
+
+function catDiscoveryPath(cat) {
+  const q = encodeURIComponent(cat.query || cat.name)
+  return `/discovery?cat=${q}`
+}
 
 export default function Landing() {
   const navigate = useNavigate()
   const place = usePlaceAutocomplete()
+  const [locating, setLocating] = useState(false)
+  const [locateError, setLocateError] = useState('')
+  const [foodCats, setFoodCats] = useState(FALLBACK_CATS)
+  const [foodCatsTitle, setFoodCatsTitle] = useState('Top brands on TataEats')
+  const [foodCatsLoading, setFoodCatsLoading] = useState(true)
+  const [savedLabel, setSavedLabel] = useState(() =>
+    hasSavedLocation() ? getLocation().label || '' : '',
+  )
+  const [editingAddress, setEditingAddress] = useState(false)
+  const showSavedChip = Boolean(savedLabel) && !editingAddress
 
-  function useDefaultLocation() {
-    setLocation({ lat: DEFAULT_LAT, lng: DEFAULT_LNG, label: DEFAULT_LABEL })
+  useEffect(() => {
+    if (!hasSavedLocation()) return
+    const loc = getLocation()
+    if (loc?.label) setSavedLabel(loc.label)
+  }, [])
+
+  function startChangeAddress() {
+    setEditingAddress(true)
+    place.setQuery('')
+    requestAnimationFrame(() => {
+      document.getElementById('landing-address-input')?.focus()
+    })
   }
 
-  function goDiscovery() {
-    if (!place.query.trim()) {
-      useDefaultLocation()
+  function continueWithSaved() {
+    navigate('/discovery')
+  }
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      const { lat, lng } = getLocation()
+      try {
+        const data = await listFoodCategories(lat || DEFAULT_LAT, lng || DEFAULT_LNG)
+        if (cancelled) return
+        const items = Array.isArray(data?.items) ? data.items : []
+        if (items.length) {
+          setFoodCats(
+            items.map((c) => ({
+              id: String(c.id || c.name),
+              name: c.name,
+              imageUrl: c.imageUrl,
+              query: c.query || c.name,
+            })),
+          )
+          if (data.title) setFoodCatsTitle(data.title)
+          else setFoodCatsTitle('Top brands on TataEats')
+        }
+      } catch {
+        /* keep FALLBACK_CATS */
+      } finally {
+        if (!cancelled) setFoodCatsLoading(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  function applyDefaultLocation() {
+    setLocation({ lat: DEFAULT_LAT, lng: DEFAULT_LNG, label: DEFAULT_LABEL })
+    setSavedLabel(DEFAULT_LABEL)
+    setEditingAddress(false)
+  }
+
+  function locateMe({ goToDiscovery = true } = {}) {
+    setLocateError('')
+    if (!navigator.geolocation) {
+      setLocateError('Location isn’t supported in this browser. Type an address instead.')
+      return
+    }
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        const lat = pos.coords.latitude
+        const lng = pos.coords.longitude
+        try {
+          const reversed = await reverseGeocode(lat, lng)
+          const label = reversed.label || `Near ${lat.toFixed(4)}, ${lng.toFixed(4)}`
+          setLocation({
+            lat: reversed.lat ?? lat,
+            lng: reversed.lng ?? lng,
+            label,
+            placeId: `geo:${lat},${lng}`,
+          })
+          setSavedLabel(label)
+          setEditingAddress(false)
+          place.setQuery(label)
+          if (goToDiscovery) navigate('/discovery')
+        } catch {
+          const fallback = `Near ${lat.toFixed(4)}, ${lng.toFixed(4)}`
+          setLocation({
+            lat,
+            lng,
+            label: fallback,
+            placeId: `geo:${lat},${lng}`,
+          })
+          setSavedLabel(fallback)
+          setEditingAddress(false)
+          place.setQuery(fallback)
+          if (goToDiscovery) navigate('/discovery')
+        } finally {
+          setLocating(false)
+        }
+      },
+      (err) => {
+        setLocating(false)
+        if (err.code === 1) {
+          setLocateError('Location permission denied. Allow access or type an address.')
+        } else if (err.code === 3) {
+          setLocateError('Location timed out. Try again or type an address.')
+        } else {
+          setLocateError('Couldn’t get your location. Type an address instead.')
+        }
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60_000 },
+    )
+  }
+
+  async function goDiscovery() {
+    if (place.suggestions.length > 0) {
+      await place.selectSuggestion(place.suggestions[0])
+    } else if (!place.query.trim()) {
+      applyDefaultLocation()
     }
     navigate('/discovery')
   }
 
+  async function pickSuggestion(suggestion) {
+    await place.selectSuggestion(suggestion)
+    navigate('/discovery')
+  }
+
+  async function onAddressKeyDown(e) {
+    if (e.key !== 'Enter') return
+    e.preventDefault()
+    await goDiscovery()
+  }
+
+  const brandsTitle =
+    foodCatsTitle && /brand|categor|food/i.test(foodCatsTitle)
+      ? foodCatsTitle.includes('TataEats')
+        ? foodCatsTitle
+        : 'Top brands on TataEats'
+      : 'Top brands on TataEats'
+
   return (
-    <>
-      <div className="only-desktop">
-        <div className="promo-bar promo-bar--landing">
-          <div className="promo-bar__main">
-            <Icon name="gift" size={18} />
-            Welcome treat! Get ₹50 off your first order.
-          </div>
-          <div className="promo-bar__terms">On eligible orders up to ₹500 • Terms apply</div>
-        </div>
-
-        <header className="web-header web-header--landing">
-          <Logo />
-          <div className="web-header__right">
-            <button className="lang-select" type="button">
-              <Icon name="globe" size={16} /> India <Icon name="chevronDown" size={16} />
-            </button>
-            <a className="btn btn--outline" href="#">
-              Log in
-            </a>
-            <a className="btn btn--primary" href="#">
-              Sign up
-            </a>
-          </div>
-        </header>
-
-        <div className="hero-band">
-          <img className="hero-band__bg" src="/assets/hero-bg.jpg" alt="" />
-          <section className="hero">
-            <div className="hero__copy">
-              <p className="hero__eyebrow">FOOD DELIVERY NEAR ME</p>
-              <h1 className="hero__title">
-                Food Delivery Near Me
-                <br />
-                <span className="accent">
-                  Order food online,
-                  <br />
-                  made easy.
-                </span>
-              </h1>
-              <p className="hero__sub">Enter your delivery address to find food options that deliver to your area.</p>
-              <div className="hero__search" style={{ position: 'relative' }}>
-                <span className="field__icon">
-                  <Icon name="pin" size={18} />
-                </span>
-                <input
-                  type="text"
-                  placeholder="Enter your house no., street, area or PIN code"
-                  aria-label="Delivery address"
-                  value={place.query}
-                  onChange={(e) => place.setQuery(e.target.value)}
-                  autoComplete="off"
-                />
-                <button className="btn btn--primary" type="button" onClick={goDiscovery}>
-                  Find food →
-                </button>
-                <PlaceSuggestList suggestions={place.suggestions} onSelect={(s) => place.selectSuggestion(s)} />
-              </div>
-              <button
-                className="hero__locate"
-                type="button"
-                onClick={() => {
-                  useDefaultLocation()
-                  place.setQuery(DEFAULT_LABEL)
-                }}
-              >
-                <Icon name="locate" size={16} /> Use my current location
-              </button>
-              <p className="hero__hint">We’ll show restaurants only after you enter an address.</p>
-            </div>
-          </section>
-        </div>
-
-        <div className="value-bar">
-          <div className="value-bar__inner">
-            <div className="value-item">
-              <div className="value-item__icon">
-                <Icon name="pin" size={20} />
-              </div>
-              <div>
-                <strong>Local options</strong>
-                <p>Find restaurants that deliver to your address</p>
-              </div>
-            </div>
-            <div className="value-item">
-              <div className="value-item__icon">
-                <Icon name="phone" size={20} />
-              </div>
-              <div>
-                <strong>Easy ordering</strong>
-                <p>Simple and secure online ordering</p>
-              </div>
-            </div>
-            <div className="value-item">
-              <div className="value-item__icon">
-                <Icon name="percent" size={20} />
-              </div>
-              <div>
-                <strong>Offers with clear terms</strong>
-                <p>Great food with exciting offers</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <section className="section favourites">
-          <div className="container">
-            <div className="favourites__head">
-              <div>
-                <h2 className="section__title">India’s Food Favourites</h2>
-                <p className="section__sub">Explore popular cuisines and dishes loved across India.</p>
-              </div>
-              <aside className="favourites__tip">
-                <span className="favourites__tip-icon">
-                  <Icon name="bulb" size={18} />
-                </span>
-                <p>
-                  <strong>Just browsing for inspiration?</strong> Enter your address to check what’s available in your area.
-                </p>
-              </aside>
-            </div>
-            <div className="cuisine-grid">
-              {CATEGORIES.map((c) => (
-                <Link key={c.name} className="cuisine-card" to="/discovery">
-                  <div className="cuisine-card__img">
-                    <img src={c.img} alt={c.name} loading="lazy" />
-                  </div>
-                  <span className="cuisine-card__label">{c.name}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="section section--promo">
-          <div className="container">
-            <div className="promo-banner">
-              <img className="promo-banner__gift" src="/assets/promo-gift-cut.png" alt="" />
-              <div className="promo-banner__content">
-                <div className="promo-banner__copy">
-                  <div className="promo-banner__eyebrow">NEW HERE?</div>
-                  <div className="promo-banner__title">
-                    Get <span className="accent">₹50 off</span> your first order.
-                  </div>
-                  <p className="promo-banner__sub">For eligible orders up to ₹500. See offer terms before ordering.</p>
-                </div>
-                <div className="promo-banner__cta">
-                  <Link className="btn btn--primary btn--lg" to="/discovery">
-                    Enter your address →
-                  </Link>
-                  <p className="promo-banner__terms">Terms apply</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section className="section how-works">
-          <div className="container">
-            <h2 className="section__title">How nomnom works</h2>
-            <p className="section__sub">Get your favourite food in a few simple steps.</p>
-            <div className="steps">
-              <article className="step">
-                <div className="step__top">
-                  <span className="step__badge">1</span>
-                  <span className="step__icon">
-                    <Icon name="pin" size={18} />
-                  </span>
-                </div>
-                <strong>Add your address</strong>
-                <p>Enter your house no., street, area or PIN code.</p>
-              </article>
-              <div className="steps__arrow" aria-hidden="true" />
-              <article className="step">
-                <div className="step__top">
-                  <span className="step__badge">2</span>
-                  <span className="step__icon">
-                    <Icon name="store" size={18} />
-                  </span>
-                </div>
-                <strong>Check local options</strong>
-                <p>We’ll show restaurants and cuisines that deliver to your area.</p>
-              </article>
-              <div className="steps__arrow" aria-hidden="true" />
-              <article className="step">
-                <div className="step__top">
-                  <span className="step__badge">3</span>
-                  <span className="step__icon">
-                    <Icon name="bag" size={18} />
-                  </span>
-                </div>
-                <strong>Choose and order</strong>
-                <p>Add items to cart and place your order securely.</p>
-              </article>
-            </div>
-          </div>
-        </section>
-
-        <section className="section section--meals">
-          <div className="container feature-split">
-            <div className="feature-split__media" aria-hidden="true">
-              <img src="/assets/meals-feast.jpg" alt="" />
-            </div>
-            <div className="feature-split__copy">
-              <p className="feature-split__eyebrow">GOOD FOOD, GREAT MOMENTS</p>
-              <h2 className="section__title">Your favourite meals, delivered to you.</h2>
-              <p className="feature-split__lead">Enter your address to see relevant restaurants, cuisines and offers near you.</p>
-              <ul className="feature-list">
-                <li>
-                  <div className="feature-list__icon">
-                    <Icon name="pin" size={18} />
-                  </div>
-                  <div>
-                    <strong>Discover local options</strong>
-                    <p>See restaurants that deliver to your area.</p>
-                  </div>
-                </li>
-                <li>
-                  <div className="feature-list__icon">
-                    <Icon name="bag" size={18} />
-                  </div>
-                  <div>
-                    <strong>Wide variety</strong>
-                    <p>Biryani, pizza, North Indian, South Indian, burgers and more.</p>
-                  </div>
-                </li>
-                <li>
-                  <div className="feature-list__icon">
-                    <Icon name="heart" size={18} />
-                  </div>
-                  <div>
-                    <strong>Easy and secure ordering</strong>
-                    <p>Multiple payment options for a smooth experience.</p>
-                  </div>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </section>
-
-        <section className="section section--app">
-          <div className="container">
-            <div className="app-teaser">
-              <img className="app-teaser__phone" src="/assets/app-phone.png" alt="" />
-              <div className="app-teaser__copy">
-                <span className="app-teaser__icon">
-                  <Icon name="phone" size={20} />
-                </span>
-                <div>
-                  <strong>The nomnom app</strong>
-                  <p>Order on the go. Same great food, coming soon.</p>
-                </div>
-              </div>
-              <button className="btn app-teaser__btn" type="button">
-                <Icon name="pin" size={16} /> App coming soon
-              </button>
-            </div>
-          </div>
-        </section>
-
-        <section className="section section--partner">
-          <div className="container">
-            <div className="partner-cta">
-              <div className="partner-cta__inner">
-                <div className="partner-cta__copy">
-                  <span className="partner-cta__icon">
-                    <Icon name="store" size={22} />
-                  </span>
-                  <div>
-                    <h2>Restaurant or delivery partner?</h2>
-                    <p>Grow your business with nomnom.</p>
-                  </div>
-                </div>
-                <a className="btn btn--partner" href="#">
-                  Learn about partnering with us <Icon name="chevron" size={16} />
-                </a>
-              </div>
-              <div className="partner-cta__photo" aria-hidden="true">
-                <img src="/assets/partner-wok.jpg" alt="" />
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <footer className="site-footer">
-          <div className="footer-grid">
-            <div className="footer-brand">
-              <Logo className="logo--inverse" />
-              <p className="site-footer__tag">Good food. Made easy.</p>
-            </div>
-            <div>
-              <h4>Explore</h4>
-              <a href="#">Cuisines</a>
-              <a href="#">Offers</a>
-              <a href="#">Cities</a>
-            </div>
-            <div>
-              <h4>Help &amp; Support</h4>
-              <a href="#">Order help</a>
-              <a href="#">Payments</a>
-              <a href="#">Contact us</a>
-              <a href="#">FAQs</a>
-            </div>
-            <div>
-              <h4>About</h4>
-              <a href="#">Our story</a>
-              <a href="#">Careers</a>
-              <a href="#">Terms &amp; Conditions</a>
-              <a href="#">Privacy Policy</a>
-            </div>
-          </div>
-          <div className="site-footer__bottom">
-            <span>© 2026 nomnom. All rights reserved.</span>
-            <button className="footer-locale" type="button">
-              <Icon name="globe" size={16} /> India (EN) <Icon name="chevronDown" size={14} />
-            </button>
-          </div>
-        </footer>
+    <div className="noon-page noon-landing">
+      <div className="noon-landing-mobile-top only-mobile">
+        <Logo className="logo--sm" />
       </div>
 
-      <div className="only-mobile m-page m-page--landing m-page--no-tab">
-        <header className="m-header">
-          <Logo className="logo--sm" />
-          <button className="m-icon-btn" type="button" aria-label="Account">
-            <Icon name="user" size={22} />
-          </button>
-        </header>
-        <div className="m-content">
-          <div className="m-welcome">
-            <img className="m-welcome__art" src="/assets/welcome-gift.png" alt="" width="104" height="104" />
-            <div className="m-welcome__copy">
-              <div className="m-welcome__eyebrow">WELCOME TREAT!</div>
-              <div className="m-welcome__title">
-                Get <span className="m-welcome__accent">₹50 off</span>
-                <br />
-                on your first order
-              </div>
-              <p className="m-welcome__sub">Order anything up to ₹500. T&amp;C apply.</p>
-            </div>
+      <header className="noon-header noon-header--landing only-desktop">
+        <div className="noon-header__inner">
+          <div className="noon-header__left">
+            <Logo />
           </div>
-          <div className="m-address-card">
-            <div className="m-loc-label">
-              <Icon name="pin" size={18} /> Enter your delivery address
-            </div>
-            <div className="m-address-row">
-              <label className="field m-address-field" style={{ position: 'relative' }}>
-                <span className="field__icon">
+          <div className="noon-header__right">
+            <AuthButtons />
+          </div>
+        </div>
+      </header>
+
+      <section className="noon-landing-hero" aria-label="Choose delivery location">
+        <div className="noon-landing-hero__media" aria-hidden="true">
+          <img src="/assets/hero-bg.jpg" alt="" />
+        </div>
+        <div className="noon-landing-card" data-place-search>
+          {showSavedChip ? (
+            <>
+              <div className="loc-chip" role="status">
+                <span className="loc-chip__pin" aria-hidden="true">
+                  <Icon name="pin" size={16} />
+                </span>
+                <span className="loc-chip__text">
+                  <span className="loc-chip__label">Delivering to</span>
+                  <strong className="loc-chip__place" title={savedLabel}>
+                    {shortPlaceLabel(savedLabel, 2)}
+                  </strong>
+                </span>
+                <button type="button" className="loc-chip__change" onClick={startChangeAddress}>
+                  Change
+                </button>
+              </div>
+              <button className="btn btn--primary btn--lg" type="button" onClick={continueWithSaved}>
+                View Restaurants
+              </button>
+            </>
+          ) : (
+            <>
+              <label className="noon-search-field" style={{ position: 'relative', display: 'flex' }}>
+                <span className="noon-search-field__icon" aria-hidden="true">
                   <Icon name="search" size={18} />
                 </span>
                 <input
+                  id="landing-address-input"
                   type="text"
-                  placeholder="House no., street, area or PIN code"
+                  placeholder="Search your location"
                   aria-label="Delivery address"
                   value={place.query}
                   onChange={(e) => place.setQuery(e.target.value)}
+                  onFocus={place.onInputFocus}
+                  onKeyDown={onAddressKeyDown}
                   autoComplete="off"
                 />
-                <span className="m-address-field__divider" aria-hidden="true" />
-                <button
-                  type="button"
-                  className="m-icon-btn m-locate-btn"
-                  aria-label="Use current location"
-                  onClick={() => {
-                    useDefaultLocation()
-                    place.setQuery(DEFAULT_LABEL)
-                  }}
-                >
-                  <Icon name="locate" size={20} />
-                </button>
-                <PlaceSuggestList suggestions={place.suggestions} onSelect={(s) => place.selectSuggestion(s)} />
+                {place.panelOpen ? (
+                  <PlaceSuggestList
+                    suggestions={place.suggestions}
+                    onSelect={pickSuggestion}
+                    loading={place.loading}
+                    emptyHint={
+                      place.query.trim().length >= 3 && !place.loading
+                        ? 'No places match that address. Try a nearby area or landmark.'
+                        : place.query.trim().length > 0 && place.query.trim().length < 3
+                          ? 'Keep typing — enter at least 3 letters'
+                          : null
+                    }
+                  />
+                ) : null}
               </label>
-              <button className="btn btn--primary m-find-btn" type="button" onClick={goDiscovery}>
-                Find food →
+              <button className="btn btn--primary btn--lg" type="button" onClick={goDiscovery}>
+                View Restaurants
               </button>
-            </div>
-          </div>
-          <div className="m-section-head">
-            <h2>Popular in your area</h2>
-            <Link to="/discovery">See all →</Link>
-          </div>
-          <div className="m-cat-grid">
-            {mobileCats.map((c) => (
-              <Link key={c.name} className="m-cat" to="/discovery">
-                <div className="m-cat__img">
-                  <img src={c.img} alt={c.name} loading="lazy" />
-                </div>
-                <span>{c.name}</span>
-              </Link>
-            ))}
-          </div>
-          <div className="m-section-head">
-            <h2>Why choose nomnom</h2>
-          </div>
-          <div className="m-why">
-            <div>
-              <div className="m-why__icon">
-                <Icon name="bolt" size={22} />
+              <div className="hero__loc-actions" style={{ justifyContent: 'center' }}>
+                {savedLabel ? (
+                  <button type="button" className="hero__use-saved" onClick={() => setEditingAddress(false)}>
+                    Use saved: {shortPlaceLabel(savedLabel, 2)}
+                  </button>
+                ) : null}
+                <button
+                  className="hero__locate"
+                  type="button"
+                  disabled={locating}
+                  onClick={() => locateMe({ goToDiscovery: true })}
+                >
+                  <Icon name="locate" size={16} />
+                  {locating ? 'Getting your location…' : 'Use my current location'}
+                </button>
               </div>
-              <strong>Wide choice</strong>
-              <p>Top restaurants near you</p>
-            </div>
-            <div>
-              <div className="m-why__icon">
-                <Icon name="bike" size={22} />
-              </div>
-              <strong>Easy ordering</strong>
-              <p>Simple and secure</p>
-            </div>
-            <div>
-              <div className="m-why__icon">
-                <Icon name="percent" size={22} />
-              </div>
-              <strong>Great offers</strong>
-              <p>Save more every day</p>
-            </div>
-          </div>
-          <div className="m-app-card">
-            <div className="m-app-card__phone" aria-hidden="true">
-              <img src="/assets/app-phone.png" alt="" width="140" height="160" />
-            </div>
-            <div className="m-app-card__copy">
-              <strong>
-                Get the <span className="m-app-card__brand">nomnom</span> app
-              </strong>
-              <p>Faster ordering, exclusive offers and more.</p>
-            </div>
-          </div>
+            </>
+          )}
+          {locateError ? (
+            <p className="hero__hint" style={{ color: 'var(--color-primary)', margin: 0 }}>
+              {locateError}
+            </p>
+          ) : null}
+          <p className="noon-landing-card__auth">
+            <button type="button" className="btn btn--outline" disabled title="Coming soon">
+              Log in
+            </button>{' '}
+            for your recent addresses
+          </p>
         </div>
-        <footer className="m-footer-mini">
-          © 2026 nomnom. All rights reserved. <a href="#">Privacy</a> | <a href="#">Terms</a> | <a href="#">Contact</a>
-        </footer>
-      </div>
-    </>
+      </section>
+
+      <section className="noon-brands" aria-busy={foodCatsLoading || undefined}>
+        <h2 className="noon-brands__title">{brandsTitle}</h2>
+        <div className="noon-brands__row">
+          {foodCats.map((c) => (
+            <Link key={c.id} className="noon-brand-circle" to={catDiscoveryPath(c)}>
+              <img className="noon-brand-circle__img" src={c.imageUrl} alt="" loading="lazy" />
+              <span className="noon-brand-circle__name">{c.name}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <footer className="only-desktop" style={{ padding: '24px 16px 48px', textAlign: 'center', color: 'var(--color-text-muted)', fontSize: 13 }}>
+        © 2026 TataEats. All rights reserved.
+      </footer>
+
+      <BottomNav active="home" />
+    </div>
   )
 }
