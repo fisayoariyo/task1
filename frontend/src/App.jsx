@@ -3,6 +3,7 @@ import Checkout from './pages/Checkout'
 import Discovery from './pages/Discovery'
 import Landing from './pages/Landing'
 import Restaurant from './pages/Restaurant'
+import { AuthProvider } from './auth/AuthContext'
 import { hasSavedLocation } from './lib/location'
 
 export default function App() {
@@ -10,23 +11,25 @@ export default function App() {
   const unknownFallback = hasSavedLocation() ? '/discovery' : '/'
 
   return (
-    <Routes>
-      <Route path="/" element={<Landing />} />
-      <Route path="/discovery" element={<Discovery />} />
-      <Route path="/restaurant/:id?" element={<Restaurant />} />
-      <Route path="/checkout" element={<Checkout />} />
+    <AuthProvider>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/discovery" element={<Discovery />} />
+        <Route path="/restaurant/:id?" element={<Restaurant />} />
+        <Route path="/checkout" element={<Checkout />} />
 
-      {/* Old static URLs → clean paths */}
-      <Route path="/web/landing.html" element={<Navigate to="/" replace />} />
-      <Route path="/web/landing" element={<Navigate to="/" replace />} />
-      <Route path="/web/discovery.html" element={<Navigate to="/discovery" replace />} />
-      <Route path="/web/discovery" element={<Navigate to="/discovery" replace />} />
-      <Route path="/web/restaurant.html" element={<Navigate to="/restaurant" replace />} />
-      <Route path="/web/restaurant" element={<Navigate to="/restaurant" replace />} />
-      <Route path="/web/checkout.html" element={<Navigate to="/checkout" replace />} />
-      <Route path="/web/checkout" element={<Navigate to="/checkout" replace />} />
+        {/* Old static URLs → clean paths */}
+        <Route path="/web/landing.html" element={<Navigate to="/" replace />} />
+        <Route path="/web/landing" element={<Navigate to="/" replace />} />
+        <Route path="/web/discovery.html" element={<Navigate to="/discovery" replace />} />
+        <Route path="/web/discovery" element={<Navigate to="/discovery" replace />} />
+        <Route path="/web/restaurant.html" element={<Navigate to="/restaurant" replace />} />
+        <Route path="/web/restaurant" element={<Navigate to="/restaurant" replace />} />
+        <Route path="/web/checkout.html" element={<Navigate to="/checkout" replace />} />
+        <Route path="/web/checkout" element={<Navigate to="/checkout" replace />} />
 
-      <Route path="*" element={<Navigate to={unknownFallback} replace />} />
-    </Routes>
+        <Route path="*" element={<Navigate to={unknownFallback} replace />} />
+      </Routes>
+    </AuthProvider>
   )
 }
