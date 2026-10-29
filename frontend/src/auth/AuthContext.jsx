@@ -1,20 +1,26 @@
-import { useCallback, useEffect, useMemo, useReducer, useState } from 'react'
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react'
 import { getCurrentUser, login, logout, register } from '../lib/api.js'
 import { authReducer, initialAuthState } from '../lib/authState.js'
 import { AuthContext } from './auth.js'
+import { AuthDialog } from '../components/AuthDialog'
 
 export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(authReducer, initialAuthState)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [mode, setMode] = useState('login')
+  const sessionRequestRef = useRef(0)
 
   const refreshSession = useCallback(async () => {
+    const requestId = ++sessionRequestRef.current
     dispatch({ type: 'session-loading' })
     try {
       const user = await getCurrentUser()
-      dispatch({ type: 'user-authenticated', user })
+      if (requestId === sessionRequestRef.current) {
+        dispatch({ type: 'user-authenticated', user })
+      }
       return user
     } catch (error) {
+      if (requestId !== sessionRequestRef.current) return null
       if (error?.status === 401) {
         dispatch({ type: 'session-anonymous' })
         return null
@@ -39,20 +45,29 @@ export function AuthProvider({ children }) {
   const closeAuth = useCallback(() => setDialogOpen(false), [])
 
   const signIn = useCallback(async (credentials) => {
+    const requestId = ++sessionRequestRef.current
     const user = await login(credentials)
-    dispatch({ type: 'user-authenticated', user })
+    if (requestId === sessionRequestRef.current) {
+      dispatch({ type: 'user-authenticated', user })
+    }
     return user
   }, [])
 
   const signUp = useCallback(async (credentials) => {
+    const requestId = ++sessionRequestRef.current
     const user = await register(credentials)
-    dispatch({ type: 'user-authenticated', user })
+    if (requestId === sessionRequestRef.current) {
+      dispatch({ type: 'user-authenticated', user })
+    }
     return user
   }, [])
 
   const signOut = useCallback(async () => {
+    const requestId = ++sessionRequestRef.current
     await logout()
-    dispatch({ type: 'logout-success' })
+    if (requestId === sessionRequestRef.current) {
+      dispatch({ type: 'logout-success' })
+    }
   }, [])
 
   const value = useMemo(
@@ -84,5 +99,10 @@ export function AuthProvider({ children }) {
     ],
   )
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      <AuthDialog open={dialogOpen} mode={mode} onClose={closeAuth} />
+    </AuthContext.Provider>
+  )
 }
