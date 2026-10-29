@@ -9,6 +9,7 @@ export default defineConfig({
     proxy: {
       '/restaurants': 'http://127.0.0.1:3001',
       '/places': 'http://127.0.0.1:3001',
+      '/auth': 'http://127.0.0.1:3001',
     },
   },
 })
