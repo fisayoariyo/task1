@@ -10,20 +10,20 @@ import {
   foodCategoriesCacheKey,
   menuCacheKey,
   restaurantsCacheKey,
-} from './httpCache'
+} from './httpCache.js'
 
 /** Empty VITE_API_URL → same-origin (Vite proxy in dev). */
+const env = import.meta.env ?? {}
 const BASE = String(
-  import.meta.env.VITE_API_URL !== undefined && import.meta.env.VITE_API_URL !== null
-    ? import.meta.env.VITE_API_URL
+  env.VITE_API_URL !== undefined && env.VITE_API_URL !== null
+    ? env.VITE_API_URL
     : 'http://localhost:3001',
 ).replace(/\/$/, '')
 
 async function getJson(path, params = {}) {
   // Do not use `new URL('/x', baseWithPath)` — a leading "/" replaces the base path
   // (e.g. https://tataeats.com/api + /places → https://tataeats.com/places).
-  const rel = path.startsWith('/') ? path : `/${path}`
-  const url = BASE ? new URL(`${BASE}${rel}`) : new URL(rel, window.location.origin)
+  const url = buildApiUrl(path)
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined && value !== null && value !== '') {
       url.searchParams.set(key, String(value))
@@ -38,8 +38,58 @@ async function getJson(path, params = {}) {
   return res.json()
 }
 
+function buildApiUrl(path) {
+  const rel = path.startsWith('/') ? path : `/${path}`
+  return BASE ? new URL(`${BASE}${rel}`) : new URL(rel, window.location.origin)
+}
+
+async function authRequest(path, method = 'GET', body) {
+  const options = { credentials: 'include' }
+  if (method !== 'GET') {
+    options.method = method
+    options.headers = { 'Content-Type': 'application/json' }
+    if (body !== undefined) options.body = JSON.stringify(body)
+  }
+
+  const res = await fetch(buildApiUrl(path), options)
+  if (!res.ok) {
+    const payload = await res.json()
+    const serverMessage = Array.isArray(payload?.message)
+      ? payload.message.join(', ')
+      : payload?.message
+    const error = new Error(
+      typeof serverMessage === 'string' && serverMessage.trim()
+        ? serverMessage
+        : `API ${res.status} ${path}`,
+    )
+    error.status = res.status
+    throw error
+  }
+  if (res.status === 204) return undefined
+  return res.json()
+}
+
 export function apiBaseUrl() {
   return BASE
+}
+
+/** @returns {Promise<{ id: string, fullName: string, email: string }>} */
+export function getCurrentUser() {
+  return authRequest('/auth/me')
+}
+
+/** @param {{ email: string, password: string }} credentials */
+export function login(credentials) {
+  return authRequest('/auth/login', 'POST', credentials)
+}
+
+/** @param {{ fullName: string, email: string, password: string }} credentials */
+export function register(credentials) {
+  return authRequest('/auth/register', 'POST', credentials)
+}
+
+export function logout() {
+  return authRequest('/auth/logout', 'POST', {})
 }
 
 /** @returns {Promise<{ placeId: string, description: string }[]>} */
