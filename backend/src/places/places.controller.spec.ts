@@ -50,7 +50,7 @@ describe('PlacesController', () => {
       expect(result).toEqual(suggestions);
       expect(source.autocomplete).toHaveBeenCalledWith('mumbai');
       expect(cachedWrap).toHaveBeenCalledWith(
-        'ac:mumbai',
+        'ac:v3:mumbai',
         86_400_000,
         86_400_000,
         expect.any(Function),
