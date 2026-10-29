@@ -3,6 +3,22 @@ services:
     image: redis:7-alpine
     ports:
       - "6379:6379"
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: nomnom
+      POSTGRES_PASSWORD: nomnom
+      POSTGRES_DB: nomnom
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U nomnom -d nomnom"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
   api:
     build: .
     ports:
@@ -12,5 +28,12 @@ services:
       REDIS_URL: redis://redis:6379
       DATA_SOURCE: mock
       CORS_ORIGIN: http://localhost:5173
+      DATABASE_URL: postgresql://nomnom:nomnom@postgres:5432/nomnom?schema=public
     depends_on:
-      - redis
+      redis:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+
+volumes:
+  postgres_data:

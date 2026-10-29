@@ -1,15 +1,19 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { AuthModule } from './auth/auth.module';
 import { CacheModule } from './cache/cache.module';
 import { HealthController } from './health.controller';
 import { PlacesModule } from './places/places.module';
+import { PrismaModule } from './prisma/prisma.module';
 import { RestaurantsModule } from './restaurants/restaurants.module';
 import { SourceModule } from './source/source.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule,
+    AuthModule,
     ThrottlerModule.forRoot([
       {
         ttl: 60_000,
