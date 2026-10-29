@@ -5,6 +5,7 @@
 @import "./styles/web.css";
 @import "./styles/mobile.css";
 @import "./styles/responsive.css";
+@import "./styles/auth-dialog.css";
 
 @theme {
   --color-brand: #e91e63;

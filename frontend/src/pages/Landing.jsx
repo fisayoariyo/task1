@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { AuthButtons } from '../components/AuthButtons'
 import { Icon } from '../components/Icon'
 import { Logo } from '../components/Logo'
 import { PlaceSuggestList } from '../components/PlaceSuggestList'
+import { privacyPolicyUrl } from '../lib/legalLinks.js'
 import { listFoodCategories, reverseGeocode } from '../lib/api'
 import {
   DEFAULT_LABEL,
@@ -279,12 +281,7 @@ export default function Landing() {
               </a>
             </nav>
             <div className="nl-drawer__actions">
-              <button type="button" className="nl-drawer__signin" disabled title="Coming soon">
-                Sign in
-              </button>
-              <button type="button" className="nl-drawer__signup" disabled title="Coming soon">
-                Sign Up
-              </button>
+              <AuthButtons variant="drawer" />
             </div>
           </aside>
         </>
@@ -361,12 +358,9 @@ export default function Landing() {
             </>
           )}
           {locateError ? <p className="nl-card__error">{locateError}</p> : null}
-          <p className="nl-card__login">
-            <button type="button" className="nl-card__login-link" disabled title="Coming soon">
-              Log In
-            </button>{' '}
-            for your recent addresses
-          </p>
+          <div className="nl-card__login">
+            <AuthButtons variant="links" /> for your recent addresses
+          </div>
         </div>
       </section>
 
@@ -498,7 +492,11 @@ export default function Landing() {
         <p className="nl-footer__copy">© 2026 TataEats. All Rights Reserved</p>
         <p className="nl-footer__legal">
           <a href="#">Terms of Use</a>
-          <a href="#">Privacy Policy</a>
+          {privacyPolicyUrl ? (
+            <a href={privacyPolicyUrl}>Privacy Policy</a>
+          ) : (
+            <span>Privacy Policy</span>
+          )}
         </p>
         <p className="nl-footer__contact">
           Contact us:{' '}
