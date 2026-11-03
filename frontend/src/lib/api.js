@@ -140,6 +140,8 @@ export async function reverseGeocode(lat, lng) {
 
 /**
  * Location-based restaurant page (Swiggy-style cursor).
+ * Discovery.jsx treats the return value as a page object (`applyListBatch`), not a bare array:
+ * first call `listRestaurants(lat, lng)`; load-more passes `nextOffset` + `widgetOffset` from the prior page.
  * @param {string} [nextOffset]
  * @param {Record<string, string>|null} [widgetOffset]
  * @returns {Promise<{ restaurants: object[], nextOffset: string|null, widgetOffset: object|null, hasMore: boolean }>}
