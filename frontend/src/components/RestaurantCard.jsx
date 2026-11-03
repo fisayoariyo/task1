@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Icon } from './Icon'
 import { IMG } from '../lib/data'
@@ -8,41 +9,61 @@ function offerShort(offer) {
   return s.length > 28 ? `${s.slice(0, 26)}…` : s
 }
 
-/** Noon-like restaurant card — TataEats mapped fields only. */
+/** Grey shimmer shell matching RestaurantCard layout while list API is in flight. */
+export function RestaurantCardShell() {
+  return (
+    <div className="noon-r-card noon-r-card--shell" aria-hidden="true">
+      <div className="noon-r-card__media noon-r-card__media--shell" />
+      <div className="noon-r-card__body">
+        <div className="noon-r-card__shell-line noon-r-card__shell-line--title" />
+        <div className="noon-r-card__shell-line noon-r-card__shell-line--sub" />
+        <div className="noon-r-card__shell-line noon-r-card__shell-line--fee" />
+      </div>
+    </div>
+  )
+}
+
+/** Noon chrome + Swiggy/TataEats fields (real ₹ cost for two — not Noon $$$$ tier). */
 export function RestaurantCard({ restaurant: r, wishTick = 0, onWish }) {
+  const imgRef = useRef(null)
+  const [imgReady, setImgReady] = useState(false)
+  const timeLabel = r.time && r.time !== '—' ? String(r.time).replace(/\bmin\b/, 'mins') : ''
+  const costLabel = r.cost || (r.costForTwo > 0 ? `₹${Math.round(r.costForTwo)} for two` : '')
+
+  useEffect(() => {
+    setImgReady(false)
+    const img = imgRef.current
+    if (img?.complete && img.naturalWidth > 0) setImgReady(true)
+  }, [r.img])
+
   return (
     <Link className="noon-r-card" to={`/restaurant/${r.id}`}>
       <div className="noon-r-card__media">
         <img
+          ref={imgRef}
           src={r.img}
           alt={r.name}
           loading="lazy"
+          className={imgReady ? 'is-loaded' : ''}
+          onLoad={() => setImgReady(true)}
           onError={(e) => {
             e.currentTarget.onerror = null
             e.currentTarget.src = IMG.biryani
           }}
         />
-        {r.offer ? <span className="noon-r-card__offer">{offerShort(r.offer)}</span> : null}
+        {r.offer ? (
+          <span className="noon-r-card__offer">
+            <Icon name="tag" size={11} />
+            {offerShort(r.offer)}
+          </span>
+        ) : null}
+        {timeLabel ? <span className="noon-r-card__eta">{timeLabel}</span> : null}
         {onWish ? (
           <button
             type="button"
-            className="r-card__wish"
+            className="noon-r-card__wish"
             aria-label={isWishlisted(r.id) ? 'Remove from wishlist' : 'Save to wishlist'}
             onClick={(e) => onWish(r, e)}
-            style={{
-              position: 'absolute',
-              right: 8,
-              top: 8,
-              border: 'none',
-              cursor: 'pointer',
-              background: 'rgba(255,255,255,.92)',
-              borderRadius: '999px',
-              width: 32,
-              height: 32,
-              display: 'grid',
-              placeItems: 'center',
-              color: isWishlisted(r.id) ? 'var(--color-primary)' : 'var(--color-text-muted)',
-            }}
             data-tick={wishTick}
           >
             <Icon name="heart" size={14} />
@@ -50,18 +71,26 @@ export function RestaurantCard({ restaurant: r, wishTick = 0, onWish }) {
         ) : null}
       </div>
       <div className="noon-r-card__body">
-        <div className="noon-r-card__name">{r.name}</div>
-        <div className="noon-r-card__rating">
-          <Icon name="star" size={12} /> {r.rating}
-          {r.ratings ? <span style={{ color: 'var(--color-text-muted)', fontWeight: 500 }}> ({r.ratings})</span> : null}
+        <div className="noon-r-card__title-row">
+          <div className="noon-r-card__name">{r.name}</div>
+          {r.rating ? (
+            <div
+              className="noon-r-card__rating"
+              title={r.ratings ? `${r.rating} (${r.ratings})` : String(r.rating)}
+            >
+              <Icon name="thumbsUp" size={13} />
+              <span className="noon-r-card__rating-value">{r.rating}</span>
+              {r.ratings ? (
+                <span className="noon-r-card__rating-count">({r.ratings})</span>
+              ) : null}
+            </div>
+          ) : null}
         </div>
-        <div className="noon-r-card__cuisines">{r.cuisines}</div>
-        <div className="noon-r-card__meta">
-          <span>
-            <Icon name="clock" size={12} /> {r.time}
-          </span>
-          <span className="noon-r-card__fee">{r.promo}</span>
+        <div className="noon-r-card__sub-row">
+          <div className="noon-r-card__cuisines">{r.cuisines}</div>
+          {costLabel ? <div className="noon-r-card__cost">{costLabel}</div> : null}
         </div>
+        {r.promo ? <div className="noon-r-card__fee">{r.promo}</div> : null}
       </div>
     </Link>
   )
