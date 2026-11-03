@@ -1,13 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { CustomiseModal } from '../components/CustomiseModal'
 import { Icon } from '../components/Icon'
+import { ReplaceCartDialog } from '../components/ReplaceCartDialog'
 import { RestaurantCard } from '../components/RestaurantCard'
 import { searchRestaurants } from '../lib/api'
+import { useCart } from '../lib/cart'
 import {
   dishGroupMenuPath,
   parseDiscoverySearch,
+  searchDishAddPlan,
 } from '../lib/discoverySearch'
 import { getLocation } from '../lib/location'
+import { getCachedMenuItem, menuItemFromDishHit, upsertMenuItems } from '../lib/menuCache'
 import { mapRestaurantCardFromApi } from '../lib/mappers'
 
 function formatRating(value) {
@@ -22,7 +27,7 @@ function formatPrice(value) {
   return `₹${Math.round(price)}`
 }
 
-function DishHit({ dish }) {
+function DishHit({ dish, onAdd }) {
   const veg = dish.veg === true
   const knownDiet = dish.veg === true || dish.veg === false
   const rating = formatRating(dish.rating)
@@ -61,6 +66,7 @@ function DishHit({ dish }) {
             aria-label={`Add ${dish.name}`}
             onClick={(event) => {
               event.preventDefault()
+              onAdd?.(dish)
             }}
           >
             ADD
@@ -74,7 +80,7 @@ function DishHit({ dish }) {
   )
 }
 
-function DishGroup({ group, query }) {
+function DishGroup({ group, query, onAddDish }) {
   const dishes = Array.isArray(group.dishes) ? group.dishes : []
   if (!group.restaurantId || dishes.length === 0) return null
   const rating = formatRating(group.rating)
@@ -104,15 +110,47 @@ function DishGroup({ group, query }) {
       </Link>
       <div className="discovery-search-group__dishes">
         {dishes.map((dish) => (
-          <DishHit key={dish.id || dish.name} dish={dish} />
+          <DishHit
+            key={dish.id || dish.name}
+            dish={dish}
+            onAdd={() => onAddDish?.(dish, group)}
+          />
         ))}
       </div>
     </section>
   )
 }
 
+function cartBlocksRestaurant(cartRestaurantId, count, restaurantId) {
+  return Boolean(
+    count && cartRestaurantId && String(cartRestaurantId) !== String(restaurantId),
+  )
+}
+
+function customiseSheetDish(dish, planDish, snapshot) {
+  return {
+    ...planDish,
+    ...(snapshot || {}),
+    id: String(dish.id),
+    variants: planDish?.variants || [],
+    addons: planDish?.addons || [],
+    pricingModels: planDish?.pricingModels || [],
+    customisable: true,
+  }
+}
+
 export default function DiscoverySearch() {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  const {
+    count,
+    addItem,
+    addCustomisedItem,
+    replaceCartWithItem,
+    restaurantId: cartRestaurantId,
+  } = useCart()
+  const [customise, setCustomise] = useState(null)
+  const [replacePrompt, setReplacePrompt] = useState(null)
   const parsed = useMemo(
     () => parseDiscoverySearch(searchParams),
     [searchParams],
@@ -173,6 +211,50 @@ export default function DiscoverySearch() {
     return () => window.clearTimeout(timer)
   }, [parsed.query, parsed.apiTab, parsed.ready, attempt])
 
+  function handleDishAdd(dish, group) {
+    if (dish?.id == null || String(dish.id).trim() === '') return
+    const meta = {
+      restaurantId: String(group.restaurantId),
+      ...(group.restaurantName ? { restaurantName: String(group.restaurantName) } : {}),
+    }
+    const plan = searchDishAddPlan(dish, getCachedMenuItem(dish.id))
+    if (plan.type === 'menu') {
+      navigate(dishGroupMenuPath(group.restaurantId, parsed.query))
+      return
+    }
+    const snapshot = menuItemFromDishHit(dish)
+    if (snapshot) upsertMenuItems([snapshot])
+    if (plan.type === 'customise') {
+      setCustomise({
+        dish: customiseSheetDish(dish, plan.dish, snapshot),
+        meta,
+      })
+      return
+    }
+    const id = snapshot?.id || String(dish.id)
+    if (cartBlocksRestaurant(cartRestaurantId, count, meta.restaurantId)) {
+      setReplacePrompt({ kind: 'plain', payload: id, meta })
+      return
+    }
+    addItem(id, meta)
+  }
+
+  function handleAddCustomised(payload) {
+    const meta = customise?.meta || {}
+    const next = { ...payload, ...meta }
+    if (cartBlocksRestaurant(cartRestaurantId, count, meta.restaurantId)) {
+      setReplacePrompt({ kind: 'custom', payload: next, meta })
+      return
+    }
+    addCustomisedItem(next)
+  }
+
+  function confirmReplaceCart() {
+    if (!replacePrompt) return
+    replaceCartWithItem(replacePrompt.kind, replacePrompt.payload, replacePrompt.meta)
+    setReplacePrompt(null)
+  }
+
   function selectTab(routeTab) {
     const next = new URLSearchParams(searchParams)
     next.set('tab', routeTab)
@@ -202,6 +284,17 @@ export default function DiscoverySearch() {
 
   return (
     <div className="noon-page discovery-search">
+      <CustomiseModal
+        dish={customise?.dish ?? null}
+        open={Boolean(customise)}
+        onClose={() => setCustomise(null)}
+        onAdd={handleAddCustomised}
+      />
+      <ReplaceCartDialog
+        open={Boolean(replacePrompt)}
+        onNo={() => setReplacePrompt(null)}
+        onYes={confirmReplaceCart}
+      />
       <header className="noon-header discovery-search__header">
         <div className="discovery-search__bar">
           <Link className="discovery-search__back" to="/discovery" aria-label="Back to discovery">
@@ -312,6 +405,7 @@ export default function DiscoverySearch() {
                 key={group.restaurantId}
                 group={group}
                 query={parsed.query}
+                onAddDish={handleDishAdd}
               />
             ))}
           </div>

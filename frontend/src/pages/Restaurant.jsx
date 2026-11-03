@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AuthButtons } from '../components/AuthButtons'
 import { CustomiseModal } from '../components/CustomiseModal'
 import { DeliverToControl } from '../components/DeliverToControl'
@@ -11,6 +11,7 @@ import { getMenu } from '../lib/api'
 import { menuCacheKey, peekHttpCache } from '../lib/httpCache'
 import { useCart } from '../lib/cart'
 import { IMG } from '../lib/data'
+import { becauseYouSearchedLabel, menuQueryFromSearch } from '../lib/discoverySearch'
 import { getLocation, shortPlaceLabel } from '../lib/location'
 import { flattenMenuDto, setMenuItems } from '../lib/menuCache'
 import { mapMenuItemFromApi } from '../lib/mappers'
@@ -323,6 +324,8 @@ function DishList({ items, totalCount, onAdd, sentinelRef, hasMore }) {
 
 export default function Restaurant() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const arrivalQuery = menuQueryFromSearch(searchParams)
   const { id: routeId } = useParams()
   const restaurantId = String(routeId ?? '').trim()
   const liveId = isLiveRestaurantId(restaurantId)
@@ -350,7 +353,7 @@ export default function Restaurant() {
   const [menuError, setMenuError] = useState(null)
   const [menuLoading, setMenuLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('order')
-  const [dishQuery, setDishQuery] = useState('')
+  const [dishQuery, setDishQuery] = useState(arrivalQuery)
   const [filterVeg, setFilterVeg] = useState(false)
   const [filterNonVeg, setFilterNonVeg] = useState(false)
   const [filterBestseller, setFilterBestseller] = useState(false)
@@ -370,7 +373,6 @@ export default function Restaurant() {
     setPlaceLabel(label)
     setMenuError(null)
     setActiveTab('order')
-    setDishQuery('')
     setFilterVeg(false)
     setFilterNonVeg(false)
     setFilterBestseller(false)
@@ -454,6 +456,10 @@ export default function Restaurant() {
       cancelled = true
     }
   }, [restaurantId, liveId])
+
+  useEffect(() => {
+    setDishQuery(arrivalQuery)
+  }, [restaurantId, arrivalQuery])
 
   const activeCatName =
     categoryNav.find((c) => c.id === activeCatId)?.name || ''
@@ -541,6 +547,11 @@ export default function Restaurant() {
     setDishQuery(value)
     setActiveTab('order')
   }
+
+  const arrivalSummary =
+    dishQuery.trim() && dishQuery.trim() === arrivalQuery
+      ? becauseYouSearchedLabel(dishQuery)
+      : ''
 
   const filterBarProps = {
     dishQuery,
@@ -937,9 +948,11 @@ export default function Restaurant() {
                   </p>
                 ) : (
                   <p style={{ color: 'var(--color-text-secondary)', fontSize: '.875rem', marginBottom: 8 }}>
-                    {dishQuery.trim()
-                      ? `Matches for “${dishQuery.trim()}”`
-                      : 'Pick a category or filter dishes below.'}
+                    {arrivalSummary
+                      ? arrivalSummary
+                      : dishQuery.trim()
+                        ? `Matches for “${dishQuery.trim()}”`
+                        : 'Pick a category or filter dishes below.'}
                   </p>
                 )}
                 <div>
@@ -1187,9 +1200,11 @@ export default function Restaurant() {
               </div>
             ) : (
               <p className="m-menu-search-summary">
-                {filteredDishes.length
-                  ? `${filteredDishes.length} dish${filteredDishes.length === 1 ? '' : 'es'} for “${dishQuery.trim()}”`
-                  : `No dishes match “${dishQuery.trim()}”`}
+                {arrivalSummary
+                  ? arrivalSummary
+                  : filteredDishes.length
+                    ? `${filteredDishes.length} dish${filteredDishes.length === 1 ? '' : 'es'} for “${dishQuery.trim()}”`
+                    : `No dishes match “${dishQuery.trim()}”`}
               </p>
             )}
             <div>
