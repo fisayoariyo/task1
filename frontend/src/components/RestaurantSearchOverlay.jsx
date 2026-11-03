@@ -1,46 +1,53 @@
-import { Link } from 'react-router-dom'
 import { Icon } from './Icon'
-import { mapRestaurantCardFromApi } from '../lib/mappers'
 
-function etaLabel(mins) {
-  const n = Number(mins) || 0
-  if (n <= 0) return null
-  const lo = Math.max(15, n - (n % 5 || 5))
-  return `${lo}–${lo + 5} mins`
+function suggestKind(kind) {
+  return String(kind || '').toLowerCase() === 'restaurant' ? 'restaurant' : 'dish'
+}
+
+function kindLabel(kind) {
+  return suggestKind(kind) === 'restaurant' ? 'Restaurant' : 'Dish'
 }
 
 /**
- * Noon-style search overlay — live suggest while typing; Enter for full search.
+ * Swiggy-style suggest overlay — typed Dish / Restaurant rows while typing.
+ * Rows are buttons only. Dish rows must not link to /restaurant/:id;
+ * restaurant rows also stay on the results route (parent navigates).
  */
 export function RestaurantSearchOverlay({
   open,
   query,
   onQueryChange,
   onSubmit,
-  onPickSuggestion,
+  onPickItem,
+  onSeeAll,
   onClose,
   loading,
   error,
-  suggestions = [],
-  restaurants,
+  items = [],
 }) {
   if (!open) return null
 
-  const rows = (restaurants || []).map((r) => mapRestaurantCardFromApi(r))
-  const chips = (suggestions || [])
-    .map((s) => (typeof s === 'string' ? { text: s } : s))
-    .filter((s) => s?.text)
-  const q = query.trim()
+  const q = String(query || '').trim()
+  const ready = q.length >= 3
+  const rows = (Array.isArray(items) ? items : [])
+    .map((item) => {
+      const text = String(item?.text || '').trim()
+      if (!text) return null
+      const kind = suggestKind(item?.kind)
+      const imageUrl = item?.imageUrl ? String(item.imageUrl) : ''
+      return { kind, text, imageUrl }
+    })
+    .filter(Boolean)
 
   return (
-    <div className="rest-search-overlay" role="dialog" aria-modal="true" aria-label="Search restaurants">
+    <div className="rest-search-overlay" role="dialog" aria-modal="true" aria-label="Search">
       <button type="button" className="rest-search-overlay__scrim" aria-label="Close search" onClick={onClose} />
       <div className="rest-search-overlay__panel">
         <form
           className="rest-search-overlay__bar"
           onSubmit={(e) => {
             e.preventDefault()
-            onSubmit?.()
+            onSubmit?.(q)
           }}
         >
           <span className="rest-search-overlay__icon" aria-hidden="true">
@@ -51,10 +58,10 @@ export function RestaurantSearchOverlay({
             value={query}
             onChange={(e) => onQueryChange?.(e.target.value)}
             placeholder="Search restaurants, dishes & cuisines"
-            aria-label="Search restaurants"
+            aria-label="Search restaurants, dishes and cuisines"
             autoFocus
           />
-          {query.trim() ? (
+          {q ? (
             <button
               type="button"
               className="rest-search-overlay__clear"
@@ -67,91 +74,50 @@ export function RestaurantSearchOverlay({
         </form>
 
         <div className="rest-search-overlay__body">
-          {loading && rows.length === 0 && chips.length === 0 ? (
-            <p className="rest-search-overlay__status">Searching…</p>
+          {!ready ? (
+            <p
+              className={`rest-search-overlay__status${error ? ' rest-search-overlay__status--err' : ''}`}
+            >
+              {error || 'Type at least 3 characters for restaurants, dishes, or cuisines'}
+            </p>
           ) : error ? (
             <p className="rest-search-overlay__status rest-search-overlay__status--err">{error}</p>
-          ) : !q ? (
-            <p className="rest-search-overlay__status">
-              Type at least 3 characters for restaurants, dishes, or cuisines
-            </p>
+          ) : loading && rows.length === 0 ? (
+            <p className="rest-search-overlay__status">Searching…</p>
+          ) : rows.length === 0 ? (
+            <p className="rest-search-overlay__status">No suggestions for “{q}”</p>
           ) : (
-            <>
-              {chips.length > 0 ? (
-                <ul className="rest-search-overlay__suggests" aria-label="Suggestions">
-                  {chips.map((s) => (
-                    <li key={s.text}>
-                      <button
-                        type="button"
-                        className="rest-search-suggest"
-                        onClick={() => onPickSuggestion?.(s.text)}
-                      >
-                        <Icon name="search" size={16} />
-                        <span>{s.text}</span>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-
-              {rows.length === 0 && chips.length === 0 ? (
-                <p className="rest-search-overlay__status">
-                  {loading ? 'Searching…' : `No restaurants match “${q}”`}
-                </p>
-              ) : rows.length > 0 ? (
-                <ul className="rest-search-overlay__list">
-                  {rows.map((r) => {
-                    const eta = etaLabel(r.etaMins)
-                    return (
-                      <li key={r.id}>
-                        <Link
-                          to={`/restaurant/${r.id}`}
-                          className="rest-search-row"
-                          onClick={onClose}
-                        >
-                          <div className="rest-search-row__media">
-                            {r.img ? (
-                              <img src={r.img} alt="" loading="lazy" referrerPolicy="no-referrer" />
-                            ) : (
-                              <div className="rest-search-row__ph" aria-hidden="true" />
-                            )}
-                          </div>
-                          <div className="rest-search-row__text">
-                            <div className="rest-search-row__name">{r.name}</div>
-                            <div className="rest-search-row__meta">
-                              {r.rating > 0 ? (
-                                <span>
-                                  <span className="rest-search-row__star" aria-hidden="true">
-                                    ★
-                                  </span>{' '}
-                                  {r.rating}
-                                  {r.ratings ? ` (${r.ratings})` : ''}
-                                </span>
-                              ) : null}
-                              {eta ? (
-                                <span>
-                                  <Icon name="clock" size={14} /> {eta}
-                                </span>
-                              ) : null}
-                            </div>
-                            {r.cuisines ? (
-                              <div className="rest-search-row__cuisines">{r.cuisines}</div>
-                            ) : null}
-                            {r.offer ? (
-                              <div className="rest-search-row__offer">
-                                <Icon name="tag" size={14} /> {r.offer}
-                              </div>
-                            ) : null}
-                          </div>
-                        </Link>
-                      </li>
-                    )
-                  })}
-                </ul>
-              ) : null}
-            </>
+            <ul className="rest-search-overlay__list" aria-label="Suggestions">
+              {rows.map((row, index) => (
+                <li key={`${row.kind}-${row.text}-${index}`}>
+                  <button
+                    type="button"
+                    className="rest-search-row rest-search-row--suggest"
+                    onClick={() => onPickItem?.({ kind: row.kind, text: row.text })}
+                  >
+                    <div className="rest-search-row__media">
+                      {row.imageUrl ? (
+                        <img src={row.imageUrl} alt="" loading="lazy" referrerPolicy="no-referrer" />
+                      ) : (
+                        <div className="rest-search-row__ph" aria-hidden="true" />
+                      )}
+                    </div>
+                    <div className="rest-search-row__text">
+                      <div className="rest-search-row__name">{row.text}</div>
+                      <div className="rest-search-row__kind">{kindLabel(row.kind)}</div>
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
+
+        {ready ? (
+          <button type="button" className="rest-search-overlay__see-all" onClick={() => onSeeAll?.(q)}>
+            See all results for '{q}'
+          </button>
+        ) : null}
       </div>
     </div>
   )

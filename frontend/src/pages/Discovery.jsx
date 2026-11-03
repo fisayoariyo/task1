@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { AuthButtons } from '../components/AuthButtons'
 import { DeliverToControl } from '../components/DeliverToControl'
 import { FoodMindRail } from '../components/FoodMindRail'
@@ -172,8 +172,13 @@ function initialCatFromSearch(searchParams) {
   return known?.name || raw
 }
 
+function searchTabForKind(kind) {
+  return String(kind || '').toLowerCase() === 'restaurant' ? 'restaurants' : 'dishes'
+}
+
 export default function Discovery() {
   const { count } = useCart()
+  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [placeLabel, setPlaceLabel] = useState(() => getLocation().label)
   const [restaurants, setRestaurants] = useState([])
@@ -186,8 +191,7 @@ export default function Discovery() {
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchLoading, setSearchLoading] = useState(false)
   const [searchError, setSearchError] = useState(null)
-  const [searchResults, setSearchResults] = useState([])
-  const [searchSuggestions, setSearchSuggestions] = useState([])
+  const [searchItems, setSearchItems] = useState([])
   const [searchRanFor, setSearchRanFor] = useState('')
   const suggestSeqRef = useRef(0)
   const [activeCat, setActiveCat] = useState(() => initialCatFromSearch(searchParams))
@@ -637,45 +641,26 @@ export default function Discovery() {
     return sortRestaurants(list, sortBy)
   }, [restaurants, categoryResults, categoryMode, activeFilters, sortBy])
 
-  const runRestaurantSearch = useCallback(async (rawQuery) => {
-    const q = String(rawQuery ?? restQuery).trim()
-    // Cancel any in-flight suggest so ENTER results aren’t overwritten.
+  const openSearchResults = useCallback((rawQuery, tab = 'dishes') => {
+    const q = String(rawQuery ?? '').trim()
+    const routeTab = tab === 'restaurants' ? 'restaurants' : 'dishes'
+    // Drop in-flight suggest; results live on /discovery/search.
     suggestSeqRef.current += 1
     if (q.length < 3) {
       setSearchError('Type at least 3 characters')
-      setSearchResults([])
-      setSearchSuggestions([])
+      setSearchItems([])
       setSearchRanFor(q)
       setSearchOpen(true)
+      setSearchLoading(false)
       return
     }
-    setSearchOpen(true)
-    setSearchLoading(true)
-    setSearchError(null)
-    setSearchRanFor(q)
-    try {
-      const { lat, lng } = getLocation()
-      const data = await searchRestaurants(
-        lat || DEFAULT_LAT,
-        lng || DEFAULT_LNG,
-        q,
-      )
-      setSearchSuggestions([])
-      setSearchResults(Array.isArray(data?.restaurants) ? data.restaurants : [])
-    } catch {
-      setSearchResults([])
-      setSearchSuggestions([])
-      setSearchError('Search failed. Try again.')
-    } finally {
-      setSearchLoading(false)
-    }
-  }, [restQuery])
+    navigate(`/discovery/search?${new URLSearchParams({ q, tab: routeTab }).toString()}`)
+  }, [navigate])
 
   const runRestaurantSuggest = useCallback(async (rawQuery) => {
     const q = String(rawQuery ?? '').trim()
     if (q.length < 3) {
-      setSearchResults([])
-      setSearchSuggestions([])
+      setSearchItems([])
       setSearchError(null)
       setSearchLoading(false)
       setSearchRanFor('')
@@ -694,12 +679,10 @@ export default function Discovery() {
         q,
       )
       if (seq !== suggestSeqRef.current) return
-      setSearchSuggestions(Array.isArray(data?.suggestions) ? data.suggestions : [])
-      setSearchResults(Array.isArray(data?.restaurants) ? data.restaurants : [])
+      setSearchItems(Array.isArray(data?.items) ? data.items : [])
     } catch {
       if (seq !== suggestSeqRef.current) return
-      setSearchResults([])
-      setSearchSuggestions([])
+      setSearchItems([])
       setSearchError('Search failed. Try again.')
     } finally {
       if (seq === suggestSeqRef.current) setSearchLoading(false)
@@ -711,8 +694,7 @@ export default function Discovery() {
     if (!searchOpen) return undefined
     const q = restQuery.trim()
     if (q.length < 3) {
-      setSearchResults([])
-      setSearchSuggestions([])
+      setSearchItems([])
       setSearchError(null)
       setSearchLoading(false)
       return undefined
@@ -998,7 +980,7 @@ export default function Discovery() {
                     onKeyDown={(e) => {
                       if (e.key !== 'Enter') return
                       e.preventDefault()
-                      runRestaurantSearch(e.currentTarget.value)
+                      openSearchResults(e.currentTarget.value, 'dishes')
                     }}
                     onFocus={() => {
                       if (restQuery.trim().length >= 3 || searchRanFor) setSearchOpen(true)
@@ -1064,16 +1046,16 @@ export default function Discovery() {
         open={searchOpen}
         query={restQuery}
         onQueryChange={setRestQuery}
-        onSubmit={() => runRestaurantSearch()}
-        onPickSuggestion={(text) => {
+        onSubmit={(q) => openSearchResults(q, 'dishes')}
+        onSeeAll={(q) => openSearchResults(q, 'dishes')}
+        onPickItem={({ kind, text }) => {
           setRestQuery(text)
-          void runRestaurantSearch(text)
+          openSearchResults(text, searchTabForKind(kind))
         }}
         onClose={() => setSearchOpen(false)}
         loading={searchLoading}
         error={searchError}
-        suggestions={searchSuggestions}
-        restaurants={searchResults}
+        items={searchItems}
       />
 
     </div>
