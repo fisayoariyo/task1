@@ -171,6 +171,7 @@ export class SwiggySource implements RestaurantSource {
    * Keyword search for the deliver-to point (Swiggy `str` + PL tab).
    * Any user keyword — not limited to a fixed vocabulary.
    * Dish tab stays on v2_2 unless that payload has no groups, then v3 once.
+   * A failed or timed-out v3 keeps the empty v2_2 result.
    */
   async searchRestaurants(
     lat: number,
@@ -192,11 +193,18 @@ export class SwiggySource implements RestaurantSource {
     if (tab === 'dish') {
       const mapped = mapRestaurantDishSearchResponse(data, str);
       if (mapped.groups.length > 0) return mapped;
-      const alternate = await this.get<unknown>(
-        SWIGGY_SEARCH_DISH_FALLBACK_PATH,
-        params,
-      );
-      return mapRestaurantDishSearchResponse(alternate, str);
+      try {
+        const alternate = await this.get<unknown>(
+          SWIGGY_SEARCH_DISH_FALLBACK_PATH,
+          params,
+        );
+        return mapRestaurantDishSearchResponse(alternate, str);
+      } catch (err) {
+        this.logger.warn(
+          `Swiggy dish search v3 fallback failed (status=${this.upstreamStatus(err)}); returning empty v2_2 groups`,
+        );
+        return mapped;
+      }
     }
     const mapped = mapRestaurantSearchResponse(data, str);
     return {

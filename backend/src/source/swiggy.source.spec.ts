@@ -486,6 +486,35 @@ describe('SwiggySource', () => {
     );
   });
 
+  it('returns empty dish groups when v2_2 is empty and the v3 fallback rejects', async () => {
+    http.get
+      .mockReturnValueOnce(of(axiosResponse({ data: { cards: [] } })))
+      .mockReturnValueOnce(throwError(() => new Error('timeout')))
+      .mockReturnValueOnce(throwError(() => new Error('timeout')));
+    const result = await source.searchRestaurants(
+      19.076,
+      72.877,
+      'biryani',
+      'dish',
+    );
+    expect(result).toEqual({
+      query: 'biryani',
+      tab: 'dish',
+      groups: [],
+    });
+    expect(http.get).toHaveBeenNthCalledWith(
+      2,
+      `${BASE}/restaurants/search/v3`,
+      expect.objectContaining({
+        params: expect.objectContaining({
+          str: 'biryani',
+          submitAction: 'ENTER',
+          selectedPLTab: 'DISH',
+        }),
+      }),
+    );
+  });
+
   it('retries once on HTTP failure', async () => {
     http.post
       .mockReturnValueOnce(throwError(() => new Error('network')))
