@@ -1,19 +1,11 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import Checkout from './pages/Checkout'
 import Discovery from './pages/Discovery'
+import DiscoverySearch from './pages/DiscoverySearch'
 import Landing from './pages/Landing'
 import Restaurant from './pages/Restaurant'
 import { AuthProvider } from './auth/AuthContext'
 import { hasSavedLocation } from './lib/location'
-
-/** Task 5 replaces this with the search results page. */
-function DiscoverySearch() {
-  return (
-    <main className="discovery-search-stub">
-      <h1>Search results coming</h1>
-    </main>
-  )
-}
 
 export default function App() {
   /** Unknown paths: Discovery if address cookie exists, else Landing. */

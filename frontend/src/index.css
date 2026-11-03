@@ -6,6 +6,7 @@
 @import "./styles/mobile.css";
 @import "./styles/responsive.css";
 @import "./styles/auth-dialog.css";
+@import "./styles/discovery-search.css";
 
 @theme {
   --color-brand: #e91e63;
