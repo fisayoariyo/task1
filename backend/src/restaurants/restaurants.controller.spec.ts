@@ -133,9 +133,10 @@ describe('RestaurantsController', () => {
   });
 
   describe('GET /restaurants/search', () => {
-    it('searches with rounded lat/lng and query', async () => {
+    it('searches the restaurant tab by default and caches with tab', async () => {
       const payload = {
         query: 'rolls',
+        tab: 'restaurant' as const,
         restaurants: [
           {
             id: '42885',
@@ -155,6 +156,73 @@ describe('RestaurantsController', () => {
         19.076,
         72.878,
         'rolls',
+        'restaurant',
+      );
+      expect(cachedWrap).toHaveBeenCalledWith(
+        'search:19.076:72.878:restaurant:rolls',
+        120_000,
+        300_000,
+        expect.any(Function),
+      );
+    });
+
+    it('defaults an invalid tab to restaurant', async () => {
+      source.searchRestaurants.mockResolvedValue({
+        query: 'rolls',
+        tab: 'restaurant',
+        restaurants: [],
+      });
+      await controller.search('19.0764', '72.8777', 'rolls', 'nope');
+      expect(source.searchRestaurants).toHaveBeenCalledWith(
+        19.076,
+        72.878,
+        'rolls',
+        'restaurant',
+      );
+      expect(cachedWrap).toHaveBeenCalledWith(
+        'search:19.076:72.878:restaurant:rolls',
+        120_000,
+        300_000,
+        expect.any(Function),
+      );
+    });
+
+    it('searches the dish tab as grouped dishes with its own cache key', async () => {
+      const payload = {
+        query: 'Biryani',
+        tab: 'dish' as const,
+        groups: [
+          {
+            restaurantId: '555',
+            restaurantName: 'Biryani Blues',
+            rating: 4.2,
+            etaMins: 31,
+            dishes: [
+              { id: '101', name: 'Chicken Biryani', price: 249, veg: false },
+            ],
+          },
+        ],
+      };
+      source.searchRestaurants.mockResolvedValue(payload);
+      const result = await controller.search(
+        '19.0764',
+        '72.8777',
+        'Biryani',
+        'DISH',
+      );
+      expect(result).toEqual(payload);
+      expect(result).not.toHaveProperty('restaurants');
+      expect(source.searchRestaurants).toHaveBeenCalledWith(
+        19.076,
+        72.878,
+        'Biryani',
+        'dish',
+      );
+      expect(cachedWrap).toHaveBeenCalledWith(
+        'search:19.076:72.878:dish:biryani',
+        120_000,
+        300_000,
+        expect.any(Function),
       );
     });
 

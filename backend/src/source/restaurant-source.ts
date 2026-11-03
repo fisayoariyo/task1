@@ -151,11 +151,45 @@ export interface RestaurantListPage {
   hasMore: boolean;
 }
 
-/** Keyword search results for the current deliver-to lat/lng. */
+/** Search results tab. Invalid values are normalized to `restaurant`. */
+export type SearchTab = 'restaurant' | 'dish';
+
+/** One dish row inside a Dishes-tab restaurant group. */
+export interface DishSearchHit {
+  id: string;
+  name: string;
+  price: number;
+  imageUrl?: string;
+  veg?: boolean;
+  rating?: number;
+  ratingCount?: string | number;
+  customisable?: boolean;
+}
+
+/** Dishes grouped under the restaurant that serves them. */
+export interface DishSearchGroup {
+  restaurantId: string;
+  restaurantName: string;
+  rating?: number;
+  etaMins?: number;
+  dishes: DishSearchHit[];
+}
+
+/** Restaurant-tab keyword search for the current deliver-to lat/lng. */
 export interface RestaurantSearchResult {
   query: string;
+  tab: 'restaurant';
   restaurants: RestaurantCard[];
 }
+
+/** Dish-tab keyword search: dishes grouped under restaurants. */
+export interface DishSearchResult {
+  query: string;
+  tab: 'dish';
+  groups: DishSearchGroup[];
+}
+
+export type SearchResult = RestaurantSearchResult | DishSearchResult;
 
 /** As-you-type suggest row (Swiggy submitAction=SUGGEST). */
 export interface RestaurantSuggestItem {
@@ -187,12 +221,16 @@ export interface RestaurantSource {
   ): Promise<MenuDto>;
   /** Time- and location-aware food category tiles for the landing page. */
   listFoodCategories(lat: number, lng: number): Promise<FoodCategoriesDto>;
-  /** Free-text restaurant search for this lat/lng (Swiggy str=…). */
+  /**
+   * Free-text search for this lat/lng.
+   * `restaurant` → restaurant cards; `dish` → dishes grouped under restaurants.
+   */
   searchRestaurants(
     lat: number,
     lng: number,
     query: string,
-  ): Promise<RestaurantSearchResult>;
+    tab: SearchTab,
+  ): Promise<SearchResult>;
   /** Live typing suggestions for this lat/lng (Swiggy SUGGEST). */
   suggestRestaurants(
     lat: number,

@@ -7,6 +7,7 @@ import {
   mapGeocodeResponse,
   mapMenuResponse,
   mapPlaceAutocomplete,
+  mapRestaurantDishSearchResponse,
   mapRestaurantListPage,
   mapRestaurantSearchResponse,
   mapRestaurantSuggestResponse,
@@ -17,10 +18,11 @@ import {
   PlaceSuggestion,
   RestaurantListCursor,
   RestaurantListPage,
-  RestaurantSearchResult,
   RestaurantSuggestItem,
   RestaurantSuggestResult,
   RestaurantSource,
+  SearchResult,
+  SearchTab,
 } from './restaurant-source';
 
 export const SWIGGY_HTTP_TIMEOUT_MS = 8000;
@@ -36,6 +38,15 @@ export const SWIGGY_MENU_URL = 'https://www.swiggy.com/mapi/menu/pl';
  */
 export const SWIGGY_LIST_UPDATE_URL =
   'https://www.swiggy.com/mapi/restaurants/list/update';
+
+/** Working ENTER search for this BFF. */
+const SWIGGY_SEARCH_PATH = '/restaurants/search/v2_2';
+
+/**
+ * DISH ENTER on v2_2 can return an empty card list.
+ * Try search/v3 once with the same params — not a third endpoint.
+ */
+const SWIGGY_SEARCH_DISH_FALLBACK_PATH = '/restaurants/search/v3';
 
 const BROWSER_HEADERS = {
   'User-Agent':
@@ -157,25 +168,42 @@ export class SwiggySource implements RestaurantSource {
   }
 
   /**
-   * Keyword search for the deliver-to point (Swiggy `str` + restaurant tab).
+   * Keyword search for the deliver-to point (Swiggy `str` + PL tab).
    * Any user keyword — not limited to a fixed vocabulary.
+   * Dish tab stays on v2_2 unless that payload has no groups, then v3 once.
    */
   async searchRestaurants(
     lat: number,
     lng: number,
     query: string,
-  ): Promise<RestaurantSearchResult> {
+    tab: SearchTab = 'restaurant',
+  ): Promise<SearchResult> {
     const str = String(query ?? '').trim();
-    const data = await this.get<unknown>('/restaurants/search/v2_2', {
+    const params = {
       lat,
       lng,
       str,
       trackingId: 'undefined',
       submitAction: 'ENTER',
       queryUniqueId: 'undefined',
-      selectedPLTab: 'RESTAURANT',
-    });
-    return mapRestaurantSearchResponse(data, str);
+      selectedPLTab: tab === 'dish' ? 'DISH' : 'RESTAURANT',
+    };
+    const data = await this.get<unknown>(SWIGGY_SEARCH_PATH, params);
+    if (tab === 'dish') {
+      const mapped = mapRestaurantDishSearchResponse(data, str);
+      if (mapped.groups.length > 0) return mapped;
+      const alternate = await this.get<unknown>(
+        SWIGGY_SEARCH_DISH_FALLBACK_PATH,
+        params,
+      );
+      return mapRestaurantDishSearchResponse(alternate, str);
+    }
+    const mapped = mapRestaurantSearchResponse(data, str);
+    return {
+      query: mapped.query,
+      tab: 'restaurant',
+      restaurants: mapped.restaurants,
+    };
   }
 
   /**
@@ -200,10 +228,12 @@ export class SwiggySource implements RestaurantSource {
     if (mapped.items.length > 0) {
       return mapped;
     }
-    const fallback = await this.searchRestaurants(lat, lng, str);
+    const fallback = await this.searchRestaurants(lat, lng, str, 'restaurant');
+    const restaurants =
+      fallback.tab === 'restaurant' ? fallback.restaurants : [];
     return {
       query: fallback.query,
-      items: fallback.restaurants.slice(0, 24).map((restaurant) => {
+      items: restaurants.slice(0, 24).map((restaurant) => {
         const item: RestaurantSuggestItem = {
           kind: 'restaurant',
           text: restaurant.name,

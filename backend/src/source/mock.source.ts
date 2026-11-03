@@ -1,4 +1,7 @@
 import {
+  DishSearchGroup,
+  DishSearchHit,
+  DishSearchResult,
   FoodCategoriesDto,
   FoodCategory,
   MenuDto,
@@ -6,6 +9,8 @@ import {
   RestaurantCard,
   RestaurantSuggestItem,
   RestaurantSource,
+  SearchResult,
+  SearchTab,
 } from './restaurant-source';
 
 /** Real image URLs for localhost mock (Cloudinary mock ids 404). */
@@ -562,6 +567,42 @@ function foodSlotForHour(hour: number): keyof typeof FOOD_BY_SLOT {
   return 'latenight';
 }
 
+function mockDishSearch(
+  query: string,
+  restaurants: RestaurantCard[],
+): DishSearchResult {
+  const label = query ? query.charAt(0).toUpperCase() + query.slice(1) : '';
+  const slug = query.toLowerCase().replace(/\s+/g, '-');
+  const groups: DishSearchGroup[] = restaurants.map((restaurant) => {
+    const dishes: DishSearchHit[] = [
+      {
+        id: `${restaurant.id}-${slug}`,
+        name: label,
+        price: 199,
+        imageUrl: restaurant.imageUrl,
+        veg: restaurant.isVeg === true,
+      },
+    ];
+    if (restaurant.isVeg !== true) {
+      dishes.push({
+        id: `${restaurant.id}-${slug}-veg`,
+        name: `Veg ${label}`,
+        price: 179,
+        imageUrl: restaurant.imageUrl,
+        veg: true,
+      });
+    }
+    return {
+      restaurantId: restaurant.id,
+      restaurantName: restaurant.name,
+      rating: restaurant.rating,
+      etaMins: restaurant.etaMins,
+      dishes,
+    };
+  });
+  return { query, tab: 'dish', groups };
+}
+
 export class MockSource implements RestaurantSource {
   async autocomplete(input: string): Promise<PlaceSuggestion[]> {
     const q = input.trim().toLowerCase();
@@ -621,10 +662,16 @@ export class MockSource implements RestaurantSource {
     };
   }
 
-  async searchRestaurants(lat: number, lng: number, query: string) {
+  async searchRestaurants(
+    lat: number,
+    lng: number,
+    query: string,
+    tab: SearchTab = 'restaurant',
+  ): Promise<SearchResult> {
     void lat;
     void lng;
-    const q = String(query ?? '').trim().toLowerCase();
+    const qRaw = String(query ?? '').trim();
+    const q = qRaw.toLowerCase();
     const restaurants = !q
       ? []
       : RESTAURANTS.filter(
@@ -635,17 +682,21 @@ export class MockSource implements RestaurantSource {
               .toLowerCase()
               .includes(q),
         );
-    return { query: String(query ?? '').trim(), restaurants };
+    if (tab === 'dish') {
+      return mockDishSearch(qRaw, restaurants);
+    }
+    return { query: qRaw, tab: 'restaurant', restaurants };
   }
 
   async suggestRestaurants(lat: number, lng: number, query: string) {
-    const full = await this.searchRestaurants(lat, lng, query);
+    const full = await this.searchRestaurants(lat, lng, query, 'restaurant');
+    const restaurants = full.tab === 'restaurant' ? full.restaurants : [];
     const q = full.query;
     const needle = q.toLowerCase();
     const items: RestaurantSuggestItem[] = [];
     const seen = new Set<string>();
     if (needle) {
-      for (const restaurant of full.restaurants) {
+      for (const restaurant of restaurants) {
         for (const cuisine of String(restaurant.cuisines || '').split(',')) {
           const text = cuisine.trim();
           if (!text.toLowerCase().includes(needle)) continue;
@@ -655,7 +706,7 @@ export class MockSource implements RestaurantSource {
           items.push({ kind: 'dish', text });
         }
       }
-      for (const restaurant of full.restaurants) {
+      for (const restaurant of restaurants) {
         if (!restaurant.name.toLowerCase().includes(needle)) continue;
         const key = `restaurant\0${restaurant.name.toLowerCase()}`;
         if (seen.has(key)) continue;

@@ -298,6 +298,194 @@ describe('SwiggySource', () => {
     );
   });
 
+  it('searchRestaurants restaurant tab stays on v2_2 RESTAURANT cards', async () => {
+    http.get.mockReturnValue(
+      of(
+        axiosResponse({
+          data: {
+            cards: [
+              {
+                card: {
+                  card: {
+                    info: {
+                      id: '42885',
+                      name: 'Rolls Mania',
+                      cuisines: ['Rolls'],
+                      avgRating: 4.3,
+                      sla: { deliveryTime: 25 },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        }),
+      ),
+    );
+    const result = await source.searchRestaurants(
+      19.076,
+      72.877,
+      'rolls',
+      'restaurant',
+    );
+    expect(result).toMatchObject({
+      query: 'rolls',
+      tab: 'restaurant',
+    });
+    if (result.tab === 'restaurant') {
+      expect(result.restaurants[0].id).toBe('42885');
+    }
+    expect(http.get).toHaveBeenCalledTimes(1);
+    expect(http.get).toHaveBeenCalledWith(
+      `${BASE}/restaurants/search/v2_2`,
+      expect.objectContaining({
+        params: expect.objectContaining({
+          str: 'rolls',
+          submitAction: 'ENTER',
+          selectedPLTab: 'RESTAURANT',
+        }),
+      }),
+    );
+  });
+
+  it('searchRestaurants dish tab reads v2_2 DISH groups and skips v3 when present', async () => {
+    http.get.mockReturnValue(
+      of(
+        axiosResponse({
+          data: {
+            cards: [
+              {
+                card: {
+                  card: {
+                    info: {
+                      id: '101',
+                      name: 'Chicken Biryani',
+                      price: 24900,
+                      isVeg: 0,
+                    },
+                    restaurant: {
+                      info: {
+                        id: '555',
+                        name: 'Biryani Blues',
+                        avgRating: '4.2',
+                        sla: { deliveryTime: 31 },
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        }),
+      ),
+    );
+    const result = await source.searchRestaurants(
+      19.076,
+      72.877,
+      'biryani',
+      'dish',
+    );
+    expect(result).toEqual({
+      query: 'biryani',
+      tab: 'dish',
+      groups: [
+        {
+          restaurantId: '555',
+          restaurantName: 'Biryani Blues',
+          rating: 4.2,
+          etaMins: 31,
+          dishes: [
+            {
+              id: '101',
+              name: 'Chicken Biryani',
+              price: 249,
+              veg: false,
+            },
+          ],
+        },
+      ],
+    });
+    expect(http.get).toHaveBeenCalledTimes(1);
+    expect(http.get).toHaveBeenCalledWith(
+      `${BASE}/restaurants/search/v2_2`,
+      expect.objectContaining({
+        params: expect.objectContaining({
+          str: 'biryani',
+          submitAction: 'ENTER',
+          selectedPLTab: 'DISH',
+        }),
+      }),
+    );
+  });
+
+  it('tries search v3 once when the DISH tab on v2_2 has no groups', async () => {
+    http.get
+      .mockReturnValueOnce(of(axiosResponse({ data: { cards: [] } })))
+      .mockReturnValueOnce(
+        of(
+          axiosResponse({
+            data: {
+              cards: [
+                {
+                  card: {
+                    card: {
+                      info: {
+                        id: '201',
+                        name: 'Hyderabadi Biryani',
+                        price: 32000,
+                        isVeg: 0,
+                      },
+                      restaurant: {
+                        info: {
+                          id: '777',
+                          name: 'Paradise',
+                          avgRating: '4.0',
+                          sla: { deliveryTime: 40 },
+                        },
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          }),
+        ),
+      );
+    const result = await source.searchRestaurants(
+      19.076,
+      72.877,
+      'biryani',
+      'dish',
+    );
+    expect(http.get).toHaveBeenCalledTimes(2);
+    expect(http.get).toHaveBeenNthCalledWith(
+      1,
+      `${BASE}/restaurants/search/v2_2`,
+      expect.objectContaining({
+        params: expect.objectContaining({
+          str: 'biryani',
+          submitAction: 'ENTER',
+          selectedPLTab: 'DISH',
+        }),
+      }),
+    );
+    expect(http.get).toHaveBeenNthCalledWith(
+      2,
+      `${BASE}/restaurants/search/v3`,
+      expect.objectContaining({
+        params: expect.objectContaining({
+          str: 'biryani',
+          submitAction: 'ENTER',
+          selectedPLTab: 'DISH',
+        }),
+      }),
+    );
+    expect(result.tab).toBe('dish');
+    expect(result.tab === 'dish' ? result.groups[0].restaurantId : '').toBe(
+      '777',
+    );
+  });
+
   it('retries once on HTTP failure', async () => {
     http.post
       .mockReturnValueOnce(throwError(() => new Error('network')))

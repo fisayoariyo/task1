@@ -28,14 +28,18 @@ export class RestaurantsController {
     return this.restaurantsService.listFoodCategories(lat, lng);
   }
 
-  /** Keyword restaurant search for current deliver-to coordinates. */
+  /**
+   * Keyword search for current deliver-to coordinates.
+   * `tab=dish` groups dishes under restaurants; anything else is restaurant.
+   */
   @Get('search')
   search(
     @Query('lat') lat: string,
     @Query('lng') lng: string,
     @Query('q') q: string,
+    @Query('tab') tab?: string,
   ) {
-    return this.restaurantsService.searchRestaurants(lat, lng, q);
+    return this.restaurantsService.searchRestaurants(lat, lng, q, tab);
   }
 
   /** As-you-type suggest (Swiggy SUGGEST) for discovery search. */
