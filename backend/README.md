@@ -53,6 +53,8 @@ cd backend
 docker compose up --build
 ```
 
+The API image runs `prisma migrate deploy` before `node dist/main` (`start:prod:migrate`).
+
 Postgres only (user, password, and database `nomnom`, host port `5432`, volume `postgres_data`, `pg_isready` healthcheck):
 
 ```bash

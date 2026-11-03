@@ -75,12 +75,17 @@ async function authRequest(path, method = 'GET', body) {
   if (method !== 'GET') {
     options.method = method
     options.headers = { 'Content-Type': 'application/json' }
-    if (body !== undefined) options.body = JSON.stringify(body)
+    options.body = JSON.stringify(body === undefined ? {} : body)
   }
 
   const res = await fetch(buildApiUrl(path), options)
   if (!res.ok) {
-    const payload = await res.json()
+    let payload = null
+    try {
+      payload = await res.json()
+    } catch {
+      payload = null
+    }
     const serverMessage = Array.isArray(payload?.message)
       ? payload.message.join(', ')
       : payload?.message
@@ -117,6 +122,56 @@ export function register(credentials) {
 
 export function logout() {
   return authRequest('/auth/logout', 'POST', {})
+}
+
+/** @param {object} payload */
+export function createOrder(payload) {
+  return authRequest('/orders', 'POST', payload)
+}
+
+/** Admin API */
+export function adminLogin(credentials) {
+  return authRequest('/admin/auth/login', 'POST', credentials)
+}
+
+export function adminLogout() {
+  return authRequest('/admin/auth/logout', 'POST', {})
+}
+
+export function adminMe() {
+  return authRequest('/admin/auth/me')
+}
+
+export function adminUpdateCredentials(body) {
+  return authRequest('/admin/auth/credentials', 'PATCH', body)
+}
+
+export function adminListCustomers() {
+  return authRequest('/admin/customers')
+}
+
+export function adminDeleteCustomer(id) {
+  return authRequest(`/admin/customers/${encodeURIComponent(id)}`, 'DELETE')
+}
+
+export function adminBulkDeleteCustomers(ids) {
+  return authRequest('/admin/customers/bulk-delete', 'POST', { ids })
+}
+
+export function adminListOrders() {
+  return authRequest('/admin/orders')
+}
+
+export function adminGetOrder(id) {
+  return authRequest(`/admin/orders/${encodeURIComponent(id)}`)
+}
+
+export function adminDeleteOrder(id) {
+  return authRequest(`/admin/orders/${encodeURIComponent(id)}`, 'DELETE')
+}
+
+export function adminBulkDeleteOrders(ids) {
+  return authRequest('/admin/orders/bulk-delete', 'POST', { ids })
 }
 
 /** @returns {Promise<{ placeId: string, description: string }[]>} */
