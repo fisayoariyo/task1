@@ -63,6 +63,10 @@ export interface MenuItem {
   isVeg: boolean;
   imageUrl?: string;
   isBestseller?: boolean;
+  /** Dish-level rating from Swiggy aggregatedRating when present. */
+  rating?: number;
+  /** Review/rating count string or number from API when present. */
+  ratingCount?: string | number;
   /** Size / crust / etc. — always single-select; each group = one UI layer. */
   variants?: MenuAddonGroup[];
   /** Sides / toppings — shown on the customise layer after variants. */
@@ -133,14 +137,49 @@ export interface FoodCategoriesDto {
   items: FoodCategory[];
 }
 
+/** Opaque Swiggy list cursor (not a numeric page index). */
+export interface RestaurantListCursor {
+  nextOffset?: string;
+  widgetOffset?: Record<string, string>;
+}
+
+/** One infinite-scroll page of restaurants for a lat/lng. */
+export interface RestaurantListPage {
+  restaurants: RestaurantCard[];
+  nextOffset: string | null;
+  widgetOffset: Record<string, string> | null;
+  hasMore: boolean;
+}
+
+/** Keyword search results for the current deliver-to lat/lng. */
+export interface RestaurantSearchResult {
+  query: string;
+  restaurants: RestaurantCard[];
+}
+
+/** As-you-type suggest row (Swiggy submitAction=SUGGEST). */
+export interface RestaurantSuggestItem {
+  kind: 'dish' | 'restaurant';
+  /** Display text and the query to run on tap. */
+  text: string;
+  imageUrl?: string;
+  /** Present when kind is restaurant and the upstream id is known. */
+  restaurantId?: string;
+}
+
+export interface RestaurantSuggestResult {
+  query: string;
+  items: RestaurantSuggestItem[];
+}
+
 export interface RestaurantSource {
   autocomplete(input: string): Promise<PlaceSuggestion[]>;
   geocode(placeId: string): Promise<{ lat: number; lng: number }>;
   listRestaurants(
     lat: number,
     lng: number,
-    offset: number,
-  ): Promise<RestaurantCard[]>;
+    cursor?: RestaurantListCursor,
+  ): Promise<RestaurantListPage>;
   getMenu(
     restaurantId: string,
     lat: number,
@@ -148,4 +187,16 @@ export interface RestaurantSource {
   ): Promise<MenuDto>;
   /** Time- and location-aware food category tiles for the landing page. */
   listFoodCategories(lat: number, lng: number): Promise<FoodCategoriesDto>;
+  /** Free-text restaurant search for this lat/lng (Swiggy str=…). */
+  searchRestaurants(
+    lat: number,
+    lng: number,
+    query: string,
+  ): Promise<RestaurantSearchResult>;
+  /** Live typing suggestions for this lat/lng (Swiggy SUGGEST). */
+  suggestRestaurants(
+    lat: number,
+    lng: number,
+    query: string,
+  ): Promise<RestaurantSuggestResult>;
 }

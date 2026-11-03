@@ -4,6 +4,7 @@ import {
   MenuDto,
   PlaceSuggestion,
   RestaurantCard,
+  RestaurantSuggestItem,
   RestaurantSource,
 } from './restaurant-source';
 
@@ -587,11 +588,21 @@ export class MockSource implements RestaurantSource {
   async listRestaurants(
     _lat: number,
     _lng: number,
-    offset: number,
-  ): Promise<RestaurantCard[]> {
+    cursor?: { nextOffset?: string; widgetOffset?: Record<string, string> },
+  ) {
     const pageSize = 8;
-    const start = Math.max(0, offset);
-    return RESTAURANTS.slice(start, start + pageSize);
+    const start = cursor?.nextOffset
+      ? Math.max(0, parseInt(cursor.nextOffset, 10) || 0)
+      : 0;
+    const restaurants = RESTAURANTS.slice(start, start + pageSize);
+    const nextStart = start + restaurants.length;
+    const hasMore = nextStart < RESTAURANTS.length;
+    return {
+      restaurants,
+      nextOffset: hasMore ? String(nextStart) : null,
+      widgetOffset: null,
+      hasMore,
+    };
   }
 
   async getMenu(
@@ -608,6 +619,57 @@ export class MockSource implements RestaurantSource {
       restaurantId,
       restaurantName: `Restaurant ${restaurantId}`,
     };
+  }
+
+  async searchRestaurants(lat: number, lng: number, query: string) {
+    void lat;
+    void lng;
+    const q = String(query ?? '').trim().toLowerCase();
+    const restaurants = !q
+      ? []
+      : RESTAURANTS.filter(
+          (r) =>
+            r.name.toLowerCase().includes(q) ||
+            String(r.cuisines).toLowerCase().includes(q) ||
+            String(r.offer || '')
+              .toLowerCase()
+              .includes(q),
+        );
+    return { query: String(query ?? '').trim(), restaurants };
+  }
+
+  async suggestRestaurants(lat: number, lng: number, query: string) {
+    const full = await this.searchRestaurants(lat, lng, query);
+    const q = full.query;
+    const needle = q.toLowerCase();
+    const items: RestaurantSuggestItem[] = [];
+    const seen = new Set<string>();
+    if (needle) {
+      for (const restaurant of full.restaurants) {
+        for (const cuisine of String(restaurant.cuisines || '').split(',')) {
+          const text = cuisine.trim();
+          if (!text.toLowerCase().includes(needle)) continue;
+          const key = `dish\0${text.toLowerCase()}`;
+          if (seen.has(key)) continue;
+          seen.add(key);
+          items.push({ kind: 'dish', text });
+        }
+      }
+      for (const restaurant of full.restaurants) {
+        if (!restaurant.name.toLowerCase().includes(needle)) continue;
+        const key = `restaurant\0${restaurant.name.toLowerCase()}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const item: RestaurantSuggestItem = {
+          kind: 'restaurant',
+          text: restaurant.name,
+          restaurantId: restaurant.id,
+        };
+        if (restaurant.imageUrl) item.imageUrl = restaurant.imageUrl;
+        items.push(item);
+      }
+    }
+    return { query: q, items: items.slice(0, 12) };
   }
 
   async listFoodCategories(

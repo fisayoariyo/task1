@@ -6,6 +6,8 @@ import {
   mapPlaceAutocomplete,
   mapRestaurantCard,
   mapRestaurantListResponse,
+  mapRestaurantSearchResponse,
+  mapRestaurantSuggestResponse,
   paiseToRupees,
 } from './mappers';
 
@@ -93,6 +95,151 @@ describe('mappers', () => {
       expect(list).toHaveLength(1);
       expect(list[0].name).toBe('Ramsar Bakery');
       expect(list[0].costForTwo).toBe(150);
+    });
+  });
+
+  describe('mapRestaurantSuggestResponse', () => {
+    it('maps DISH to kind dish and RESTAURANT to kind restaurant', () => {
+      const payload = {
+        data: {
+          suggestions: [
+            { text: 'Pizza', type: 'DISH', cloudinaryId: 'pizza-icon' },
+            {
+              text: 'Pizza Hut',
+              suggestionType: 'RESTAURANT',
+              restaurantId: '21395',
+              cloudinaryId: 'hut-img',
+            },
+          ],
+        },
+      };
+      expect(mapRestaurantSuggestResponse(payload, 'piz')).toEqual({
+        query: 'piz',
+        items: [
+          {
+            kind: 'dish',
+            text: 'Pizza',
+            imageUrl: `${CLOUDINARY_BASE}/pizza-icon`,
+          },
+          {
+            kind: 'restaurant',
+            text: 'Pizza Hut',
+            imageUrl: `${CLOUDINARY_BASE}/hut-img`,
+            restaurantId: '21395',
+          },
+        ],
+      });
+    });
+
+    it('maps CUISINE, QUERY, and unknown suggest types to kind dish', () => {
+      const payload = {
+        data: {
+          suggestions: [
+            { text: 'Italian', type: 'CUISINE' },
+            { text: 'pizza near me', suggestionType: 'QUERY' },
+            { text: 'Biryani', type: 'FOOD' },
+          ],
+        },
+      };
+      expect(mapRestaurantSuggestResponse(payload, 'piz')).toEqual({
+        query: 'piz',
+        items: [
+          { kind: 'dish', text: 'Italian' },
+          { kind: 'dish', text: 'pizza near me' },
+          { kind: 'dish', text: 'Biryani' },
+        ],
+      });
+    });
+
+    it('keeps dish text as kind dish and drops untyped restaurant cards', () => {
+      const payload = {
+        data: {
+          suggestions: [
+            {
+              text: 'Chicken Biryani',
+              type: 'DISH',
+              info: { id: 'dish-999', name: 'Chicken Biryani' },
+            },
+          ],
+          cards: [
+            {
+              card: {
+                card: {
+                  text: 'Paneer Tikka',
+                  type: 'DISH',
+                },
+              },
+            },
+            {
+              card: {
+                card: {
+                  info: {
+                    id: '99',
+                    name: 'Domino’s Pizza',
+                    cloudinaryImageId: 'dom',
+                    cuisines: ['Pizza'],
+                    avgRating: 4.1,
+                    sla: { deliveryTime: 28 },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      };
+      const result = mapRestaurantSuggestResponse(payload, '  bir  ');
+      expect(result).toEqual({
+        query: 'bir',
+        items: [
+          { kind: 'dish', text: 'Chicken Biryani' },
+          { kind: 'dish', text: 'Paneer Tikka' },
+        ],
+      });
+      expect(result).not.toHaveProperty('suggestions');
+      expect(result).not.toHaveProperty('restaurants');
+      expect(JSON.stringify(result)).not.toContain('dish-999');
+      expect(JSON.stringify(result)).not.toContain('Domino');
+    });
+  });
+
+  describe('mapRestaurantSearchResponse', () => {
+    it('maps keyword search restaurant infos and echoes query', () => {
+      const payload = {
+        data: {
+          cards: [
+            {
+              card: {
+                card: {
+                  info: {
+                    id: '42885',
+                    name: 'Rolls Mania',
+                    cloudinaryImageId: 'abc123',
+                    cuisines: ['Rolls', 'Wraps'],
+                    avgRating: 4.3,
+                    sla: { deliveryTime: 25 },
+                    totalRatingsString: '1.2K+',
+                    aggregatedDiscountInfoV3: {
+                      header: '30% OFF',
+                      subHeader: 'UPTO ₹75',
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      };
+      const result = mapRestaurantSearchResponse(payload, 'rolls');
+      expect(result.query).toBe('rolls');
+      expect(result.restaurants).toHaveLength(1);
+      expect(result.restaurants[0]).toMatchObject({
+        id: '42885',
+        name: 'Rolls Mania',
+        rating: 4.3,
+        etaMins: 25,
+        offer: '30% OFF UPTO ₹75',
+        totalRatingsString: '1.2K+',
+      });
     });
   });
 
@@ -227,6 +374,32 @@ describe('mappers', () => {
       expect(menu.about?.openingHours?.length).toBe(2);
       expect(menu.about?.openingHours?.[0].day).toBe('Monday');
     });
+
+    it('formats datetime nextCloseMessage as clock time', () => {
+      const payload = {
+        data: {
+          cards: [
+            {
+              card: {
+                card: {
+                  '@type':
+                    'type.googleapis.com/swiggy.presentation.food.v2.Restaurant',
+                  info: {
+                    name: 'Subway',
+                    availability: {
+                      opened: true,
+                      nextCloseMessage: '2026-10-27 23:00:00',
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      };
+      const menu = mapMenuResponse(payload, '1', 'Subway');
+      expect(menu.about?.closesAt).toBe('11:00 pm');
+    });
   });
 
   describe('mapMenuResponse (Amul Butter Pav Bhaji shape)', () => {
@@ -286,6 +459,100 @@ describe('mappers', () => {
       expect(item.isVeg).toBe(true);
       expect(item.imageUrl).toBe(`${CLOUDINARY_BASE}/fdm8llrlsgawqtjjfees`);
       expect(item.isBestseller).toBe(true);
+      expect(item.rating).toBeUndefined();
+      expect(item.ratingCount).toBeUndefined();
+    });
+
+    it('maps dish aggregatedRating when present and omits when absent', () => {
+      const payload = {
+        data: {
+          cards: [
+            {
+              groupedCard: {
+                cardGroupMap: {
+                  REGULAR: {
+                    cards: [
+                      {
+                        card: {
+                          card: {
+                            '@type':
+                              'type.googleapis.com/swiggy.presentation.food.v2.ItemCategory',
+                            title: 'Pav Bhaji',
+                            itemCards: [
+                              {
+                                card: {
+                                  info: {
+                                    ...amulItem,
+                                    ratings: {
+                                      aggregatedRating: {
+                                        rating: '4.0',
+                                        ratingCount: '7 ratings',
+                                        ratingCountV2: '7',
+                                      },
+                                    },
+                                  },
+                                },
+                              },
+                            ],
+                          },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          ],
+        },
+      };
+      const item = mapMenuResponse(payload, '12824', 'Sample Rest').categories[0]
+        .items[0];
+      expect(item.rating).toBe(4);
+      expect(item.ratingCount).toBe('7');
+      expect(item.isBestseller).toBe(true);
+    });
+
+    it('maps dish image from imageId when cloudinaryImageId is absent', () => {
+      const { cloudinaryImageId: _drop, ...withoutCloudinary } = amulItem;
+      const payload = {
+        data: {
+          cards: [
+            {
+              groupedCard: {
+                cardGroupMap: {
+                  REGULAR: {
+                    cards: [
+                      {
+                        card: {
+                          card: {
+                            '@type':
+                              'type.googleapis.com/swiggy.presentation.food.v2.ItemCategory',
+                            title: 'Pav Bhaji',
+                            itemCards: [
+                              {
+                                card: {
+                                  info: {
+                                    ...withoutCloudinary,
+                                    imageId: 'alt-dish-image-id',
+                                  },
+                                },
+                              },
+                            ],
+                          },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          ],
+        },
+      };
+      const menu = mapMenuResponse(payload, '12824', 'Sample Rest');
+      expect(menu.categories[0].items[0].imageUrl).toBe(
+        `${CLOUDINARY_BASE}/alt-dish-image-id`,
+      );
     });
 
     it('maps variants (radio) and addons (multi) onto MenuItem', () => {
