@@ -6,6 +6,15 @@ import Restaurant from './pages/Restaurant'
 import { AuthProvider } from './auth/AuthContext'
 import { hasSavedLocation } from './lib/location'
 
+/** Task 5 replaces this with the search results page. */
+function DiscoverySearch() {
+  return (
+    <main className="discovery-search-stub">
+      <h1>Search results coming</h1>
+    </main>
+  )
+}
+
 export default function App() {
   /** Unknown paths: Discovery if address cookie exists, else Landing. */
   const unknownFallback = hasSavedLocation() ? '/discovery' : '/'
@@ -15,6 +24,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/discovery" element={<Discovery />} />
+        <Route path="/discovery/search" element={<DiscoverySearch />} />
         <Route path="/restaurant/:id?" element={<Restaurant />} />
         <Route path="/checkout" element={<Checkout />} />
 
