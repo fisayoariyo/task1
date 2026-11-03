@@ -33,6 +33,11 @@ function DishHit({ dish, onAdd }) {
   const rating = formatRating(dish.rating)
   const price = formatPrice(dish.price)
   const imageUrl = String(dish.imageUrl || '').trim()
+  const [imageFailed, setImageFailed] = useState(false)
+
+  useEffect(() => {
+    setImageFailed(false)
+  }, [imageUrl])
 
   return (
     <article className="discovery-search-dish">
@@ -55,8 +60,14 @@ function DishHit({ dish, onAdd }) {
       </div>
       <div className="discovery-search-dish__media">
         <div className="discovery-search-dish__shot">
-          {imageUrl ? (
-            <img src={imageUrl} alt="" loading="lazy" />
+          {imageUrl && !imageFailed ? (
+            <img
+              src={imageUrl}
+              alt=""
+              loading="lazy"
+              referrerPolicy="no-referrer"
+              onError={() => setImageFailed(true)}
+            />
           ) : (
             <span className="discovery-search-dish__ph" aria-hidden="true" />
           )}
