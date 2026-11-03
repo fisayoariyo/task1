@@ -12,13 +12,27 @@ import {
   restaurantsCacheKey,
 } from './httpCache.js'
 
-/** Empty VITE_API_URL → same-origin (Vite proxy in dev). */
+/**
+ * Empty VITE_API_URL → same-origin (Vite `/restaurants` proxy in dev).
+ * Production builds must set an absolute URL in `.env.production`
+ * (`https://tataeats.com/api`). Never bake a bare `/api` through Git Bash —
+ * MSYS rewrites it to `C:\Program Files\Git\api` → blocked `file://` fetches.
+ */
 const env = import.meta.env ?? {}
-const BASE = String(
-  env.VITE_API_URL !== undefined && env.VITE_API_URL !== null
-    ? env.VITE_API_URL
-    : 'http://localhost:3001',
-).replace(/\/$/, '')
+
+function normalizeApiBase(raw) {
+  const value = String(raw ?? '').trim().replace(/\/$/, '')
+  if (!value) return ''
+  // Reject Windows / file paths accidentally baked in at build time (MSYS).
+  if (/^[a-zA-Z]:[\\/]/.test(value) || value.startsWith('file:')) return ''
+  if (/Program Files[\\/]+Git/i.test(value)) return ''
+  if (/^https?:\/\//i.test(value)) return value
+  // Same-origin prefix — resolve against window.location at request time
+  if (value.startsWith('/')) return value
+  return ''
+}
+
+const BASE = normalizeApiBase(env.VITE_API_URL)
 
 async function getJson(path, params = {}) {
   // Do not use `new URL('/x', baseWithPath)` — a leading "/" replaces the base path
@@ -38,9 +52,22 @@ async function getJson(path, params = {}) {
   return res.json()
 }
 
+function pageOrigin() {
+  if (typeof window !== 'undefined' && window.location?.origin) {
+    return window.location.origin
+  }
+  return 'http://localhost:3001'
+}
+
 function buildApiUrl(path) {
   const rel = path.startsWith('/') ? path : `/${path}`
-  return BASE ? new URL(`${BASE}${rel}`) : new URL(rel, window.location.origin)
+  if (!BASE) {
+    return new URL(rel, pageOrigin())
+  }
+  if (BASE.startsWith('/')) {
+    return new URL(`${BASE}${rel}`, pageOrigin())
+  }
+  return new URL(`${BASE}${rel}`)
 }
 
 async function authRequest(path, method = 'GET', body) {
@@ -111,11 +138,25 @@ export async function reverseGeocode(lat, lng) {
   return getJson('/places/reverse', { lat, lng })
 }
 
-export async function listRestaurants(lat, lng, offset = 0) {
-  const key = restaurantsCacheKey(lat, lng, offset)
-  return cachedGet(key, CACHE_TTL.restaurants, () =>
-    getJson('/restaurants', { lat, lng, offset }),
-  )
+/**
+ * Location-based restaurant page (Swiggy-style cursor).
+ * @param {string} [nextOffset]
+ * @param {Record<string, string>|null} [widgetOffset]
+ * @returns {Promise<{ restaurants: object[], nextOffset: string|null, widgetOffset: object|null, hasMore: boolean }>}
+ */
+export async function listRestaurants(lat, lng, nextOffset = '', widgetOffset = null) {
+  const key = restaurantsCacheKey(lat, lng, nextOffset)
+  const params = { lat, lng }
+  if (nextOffset) params.nextOffset = nextOffset
+  if (widgetOffset && typeof widgetOffset === 'object') {
+    params.widgetOffset = JSON.stringify(widgetOffset)
+  }
+  // Only cache the first page. Cursor pages must always hit the network —
+  // a single empty/error response in sessionStorage poisoned infinite scroll (~42).
+  if (nextOffset) {
+    return getJson('/restaurants', params)
+  }
+  return cachedGet(key, CACHE_TTL.restaurants, () => getJson('/restaurants', params))
 }
 
 export async function getMenu(id, lat, lng) {
@@ -135,4 +176,32 @@ export async function listFoodCategories(lat, lng) {
   return cachedGet(key, CACHE_TTL.foodCategories, () =>
     getJson('/restaurants/food-categories', { lat, lng }),
   )
+}
+
+/**
+ * Keyword search for current deliver-to coordinates.
+ * @param {number|string} lat
+ * @param {number|string} lng
+ * @param {string} q
+ * @param {'restaurant'|'dish'} [tab='restaurant'] BFF tab — restaurant cards or dish groups
+ * @returns {Promise<
+ *   | { query: string, tab: 'restaurant', restaurants: object[] }
+ *   | { query: string, tab: 'dish', groups: { restaurantId: string, restaurantName: string, rating?: number, etaMins?: number, dishes: object[] }[] }
+ * >}
+ */
+export async function searchRestaurants(lat, lng, q, tab = 'restaurant') {
+  const query = String(q || '').trim()
+  return getJson('/restaurants/search', { lat, lng, q: query, tab })
+}
+
+/**
+ * As-you-type suggest (Swiggy SUGGEST) for discovery search.
+ * @param {number|string} lat
+ * @param {number|string} lng
+ * @param {string} q
+ * @returns {Promise<{ query: string, items: { kind: 'dish'|'restaurant', text: string, imageUrl?: string, restaurantId?: string }[] }>}
+ */
+export async function suggestRestaurants(lat, lng, q) {
+  const query = String(q || '').trim()
+  return getJson('/restaurants/suggest', { lat, lng, q: query })
 }
