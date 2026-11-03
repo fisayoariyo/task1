@@ -2,9 +2,12 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert/strict'
 import {
   apiTabForRoute,
+  becauseYouSearchedLabel,
   dishGroupMenuPath,
+  menuQueryFromSearch,
   parseDiscoverySearch,
   restaurantMenuPath,
+  searchDishAddPlan,
 } from './discoverySearch.js'
 
 describe('parseDiscoverySearch', () => {
@@ -50,5 +53,44 @@ describe('search result links', () => {
       dishGroupMenuPath('42', 'chicken biryani'),
       '/restaurant/42?query=chicken%20biryani',
     )
+  })
+})
+
+describe('searchDishAddPlan', () => {
+  it('keeps a plain dish on the results page', () => {
+    assert.deepEqual(searchDishAddPlan({ id: '1', name: 'Biryani' }, null), { type: 'add' })
+    assert.deepEqual(
+      searchDishAddPlan({ id: '1', customisable: false }, { variants: [{ id: 'size' }] }),
+      { type: 'add' },
+    )
+  })
+
+  it('sends a customisable dish to the menu when no choice groups are known', () => {
+    assert.deepEqual(
+      searchDishAddPlan({ id: '9', customisable: true }, { id: '9', name: 'Cached' }),
+      { type: 'menu' },
+    )
+    assert.deepEqual(searchDishAddPlan({ id: '9', customisable: true }, null), { type: 'menu' })
+  })
+
+  it('opens customise when the search hit already has choice groups', () => {
+    const dish = { id: '9', customisable: true, addons: [{ id: 'sauce' }] }
+    assert.deepEqual(searchDishAddPlan(dish, null), { type: 'customise', dish })
+  })
+
+  it('opens customise when the menu cache already has choice groups', () => {
+    const cached = { id: '9', variants: [{ id: 'size' }], addons: [] }
+    const plan = searchDishAddPlan({ id: '9', customisable: true }, cached)
+    assert.equal(plan.type, 'customise')
+    assert.equal(plan.dish, cached)
+  })
+})
+
+describe('menu query hydration', () => {
+  it('reads the menu query param and builds the searched-for label', () => {
+    assert.equal(menuQueryFromSearch({ query: '  chicken biryani  ' }), 'chicken biryani')
+    assert.equal(menuQueryFromSearch({ q: 'biryani' }), '')
+    assert.equal(becauseYouSearchedLabel('biryani'), 'Because you searched for “biryani”')
+    assert.equal(becauseYouSearchedLabel('  '), '')
   })
 })

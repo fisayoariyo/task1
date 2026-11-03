@@ -17,6 +17,30 @@ export function setMenuItems(items) {
   sessionStorage.setItem(KEY, JSON.stringify(map))
 }
 
+/** Cart snapshot for a dish search hit. Veg is stored only when the hit says. */
+export function menuItemFromDishHit(dish) {
+  if (dish?.id == null || String(dish.id).trim() === '') return null
+  const item = {
+    id: String(dish.id),
+    name: String(dish.name ?? ''),
+    price: Math.round(Number(dish.price) || 0),
+    img: String(dish.imageUrl ?? dish.img ?? '').trim(),
+  }
+  if (dish.veg === true || dish.veg === false) item.veg = dish.veg
+  return item
+}
+
+/** Merge one-off hits into the menu cache. Full menu loads still use setMenuItems. */
+export function upsertMenuItems(items) {
+  const map = readStore()
+  for (const item of items ?? []) {
+    if (item?.id == null || String(item.id).trim() === '') continue
+    const id = String(item.id)
+    map[id] = { ...(map[id] || {}), ...item, id }
+  }
+  sessionStorage.setItem(KEY, JSON.stringify(map))
+}
+
 export function getCachedMenuItem(id) {
   const map = readStore()
   return map[id] ?? null

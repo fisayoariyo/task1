@@ -41,3 +41,33 @@ export function dishGroupMenuPath(id, query) {
   const q = String(query ?? '').trim()
   return `/restaurant/${encodeURIComponent(String(id))}?query=${encodeURIComponent(q)}`
 }
+
+function dishHasCustomiseGroups(item) {
+  return (
+    (Array.isArray(item?.variants) && item.variants.length > 0) ||
+    (Array.isArray(item?.addons) && item.addons.length > 0)
+  )
+}
+
+/**
+ * Plain dishes add on the results page.
+ * Customisable dishes open the customise sheet only when choice groups are known.
+ * Otherwise the caller opens the restaurant menu with the search query.
+ * @returns {{ type: 'add' } | { type: 'menu' } | { type: 'customise', dish: object }}
+ */
+export function searchDishAddPlan(dish, cached) {
+  if (!dish?.customisable) return { type: 'add' }
+  if (dishHasCustomiseGroups(dish)) return { type: 'customise', dish }
+  if (dishHasCustomiseGroups(cached)) return { type: 'customise', dish: cached }
+  return { type: 'menu' }
+}
+
+/** Restaurant menu `?query=` written by the dishes tab. */
+export function menuQueryFromSearch(source) {
+  return String(readParam(source, 'query')).trim()
+}
+
+export function becauseYouSearchedLabel(query) {
+  const q = String(query ?? '').trim()
+  return q ? `Because you searched for “${q}”` : ''
+}
