@@ -21,17 +21,42 @@ describe('MockSource', () => {
   });
 
   it('listRestaurants returns cards with imageUrl', async () => {
-    const list = await src.listRestaurants(19.076, 72.877, 0);
-    expect(list[0].id).toBeDefined();
-    expect(list[0].costForTwo).toBeGreaterThan(0);
-    expect(list[0].imageUrl).toMatch(/^https?:\/\//);
+    const page = await src.listRestaurants(19.076, 72.877);
+    expect(page.restaurants[0].id).toBeDefined();
+    expect(page.restaurants[0].costForTwo).toBeGreaterThan(0);
+    expect(page.restaurants[0].imageUrl).toMatch(/^https?:\/\//);
+    expect(page.hasMore).toBeDefined();
   });
 
   it('getMenu returns categories with prices in rupees', async () => {
-    const list = await src.listRestaurants(19.076, 72.877, 0);
-    const listId = list[0].id;
+    const page = await src.listRestaurants(19.076, 72.877);
+    const listId = page.restaurants[0].id;
     const menu = await src.getMenu(listId, 19.076, 72.877);
     expect(menu.categories[0].items[0].price).toBeLessThan(10000); // not paise
+  });
+
+  it('suggestRestaurants returns mixed dish and restaurant items', async () => {
+    const result = await src.suggestRestaurants(19.076, 72.877, 'pizza');
+    expect(result).toEqual({
+      query: 'pizza',
+      items: [
+        { kind: 'dish', text: 'Pizza' },
+        {
+          kind: 'restaurant',
+          text: 'Pizza By The Bay',
+          restaurantId: 'mock-rest-4',
+          imageUrl:
+            'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&q=80',
+        },
+        {
+          kind: 'restaurant',
+          text: "Domino's Pizza",
+          restaurantId: 'mock-rest-10',
+          imageUrl:
+            'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=600&q=80',
+        },
+      ],
+    });
   });
 
   it('listFoodCategories returns time-slotted tiles', async () => {

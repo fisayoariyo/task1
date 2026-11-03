@@ -10,6 +10,9 @@ import {
   OpeningHourRow,
   PlaceSuggestion,
   RestaurantCard,
+  RestaurantListPage,
+  RestaurantSuggestItem,
+  RestaurantSuggestResult,
 } from './restaurant-source';
 
 /** Live Swiggy CDN (old res.cloudinary.com/swiggy URLs 404). */
@@ -180,6 +183,148 @@ export function mapRestaurantListResponse(payload: unknown): RestaurantCard[] {
     cards.push(mapRestaurantCard(info));
   }
   return cards;
+}
+
+/** Keyword search (dapi/restaurants/search) — same restaurant `info` cards. */
+export function mapRestaurantSearchResponse(
+  payload: unknown,
+  query: string,
+): { query: string; restaurants: RestaurantCard[] } {
+  return {
+    query: String(query ?? '').trim(),
+    restaurants: mapRestaurantListResponse(payload),
+  };
+}
+
+/** Suggest type tokens only — skip protobuf `@type` paths and sentences. */
+function isTextSuggestType(raw: string): boolean {
+  const t = raw.trim();
+  if (!t || t.length > 32) return false;
+  return !/[./\s]/.test(t);
+}
+
+/** CUISINE, QUERY, and any non-restaurant text suggest open as a dish. */
+function suggestKind(typeRaw: string): 'dish' | 'restaurant' {
+  return typeRaw.trim().toLowerCase() === 'restaurant' ? 'restaurant' : 'dish';
+}
+
+function readSuggestText(s: Record<string, unknown>): string {
+  return String(s.text ?? s.suggestion ?? s.query ?? '').trim();
+}
+
+function readSuggestImage(s: Record<string, unknown>): string | undefined {
+  const candidates = [s.imageUrl, s.cloudinaryId, s.cloudinaryImageId, s.imageId];
+  for (const raw of candidates) {
+    const id = String(raw ?? '').trim();
+    if (!id) continue;
+    const url = buildCloudinaryUrl(id);
+    if (url) return url;
+  }
+  return undefined;
+}
+
+function readSuggestRestaurantId(s: Record<string, unknown>): string | undefined {
+  const raw = s.restaurantId ?? s.restaurant_id;
+  if (raw == null || raw === '') return undefined;
+  const id = String(raw).trim();
+  return id || undefined;
+}
+
+function pushSuggestItem(
+  s: Record<string, unknown>,
+  out: RestaurantSuggestItem[],
+  seen: Set<string>,
+  inSuggestionsList: boolean,
+): void {
+  const text = readSuggestText(s);
+  if (text.length < 2) return;
+  const typeRaw = String(
+    s.type ?? s.suggestionType ?? s.tagToDisplay ?? (inSuggestionsList ? 'query' : ''),
+  ).trim();
+  if (!isTextSuggestType(typeRaw)) return;
+  const kind = suggestKind(typeRaw);
+  const key = `${kind}\0${text.toLowerCase()}`;
+  if (seen.has(key)) return;
+  seen.add(key);
+  const item: RestaurantSuggestItem = { kind, text };
+  const imageUrl = readSuggestImage(s);
+  if (imageUrl) item.imageUrl = imageUrl;
+  if (kind === 'restaurant') {
+    const restaurantId = readSuggestRestaurantId(s);
+    if (restaurantId) item.restaurantId = restaurantId;
+  }
+  out.push(item);
+}
+
+function collectSuggestItems(
+  node: unknown,
+  out: RestaurantSuggestItem[],
+  seen: Set<string>,
+): void {
+  if (!node || typeof node !== 'object') return;
+  const obj = node as Record<string, unknown>;
+
+  const list = obj.suggestions;
+  if (Array.isArray(list)) {
+    for (const raw of list) {
+      if (!raw || typeof raw !== 'object') continue;
+      pushSuggestItem(raw as Record<string, unknown>, out, seen, true);
+    }
+  }
+
+  pushSuggestItem(obj, out, seen, false);
+
+  for (const value of Object.values(obj)) {
+    if (Array.isArray(value)) {
+      for (const item of value) collectSuggestItems(item, out, seen);
+    } else if (value && typeof value === 'object') {
+      collectSuggestItems(value, out, seen);
+    }
+  }
+}
+
+/**
+ * As-you-type suggest (Swiggy SUGGEST) → typed dish/restaurant rows.
+ * Restaurant list cards are not copied in; dish entities stay kind dish.
+ */
+export function mapRestaurantSuggestResponse(
+  payload: unknown,
+  query: string,
+): RestaurantSuggestResult {
+  const items: RestaurantSuggestItem[] = [];
+  collectSuggestItems(payload, items, new Set());
+  return {
+    query: String(query ?? '').trim(),
+    items: items.slice(0, 12),
+  };
+}
+
+/** Pull restaurants + Swiggy pageOffset cursor from list/v5 or list/update. */
+export function mapRestaurantListPage(payload: unknown): RestaurantListPage {
+  const restaurants = mapRestaurantListResponse(payload);
+  const root = payload as {
+    data?: {
+      pageOffset?: {
+        nextOffset?: string;
+        widgetOffset?: Record<string, string>;
+      };
+    };
+  };
+  const pageOffset = root.data?.pageOffset;
+  const nextOffset =
+    typeof pageOffset?.nextOffset === 'string' && pageOffset.nextOffset.trim()
+      ? pageOffset.nextOffset
+      : null;
+  const widgetOffset =
+    pageOffset?.widgetOffset && typeof pageOffset.widgetOffset === 'object'
+      ? pageOffset.widgetOffset
+      : null;
+  return {
+    restaurants,
+    nextOffset,
+    widgetOffset,
+    hasMore: Boolean(nextOffset),
+  };
 }
 
 type ImageGridInfo = {
@@ -363,9 +508,19 @@ type SwiggyMenuItem = {
   finalPrice?: { value?: number };
   isVeg?: number | boolean;
   cloudinaryImageId?: string;
+  /** Some Swiggy payloads use imageId instead of cloudinaryImageId. */
+  imageId?: string;
+  imageIds?: string[];
   isBestSeller?: boolean;
   ribbon?: { text?: string };
   recommended?: number;
+  ratings?: {
+    aggregatedRating?: {
+      rating?: string | number;
+      ratingCount?: string | number;
+      ratingCountV2?: string | number;
+    };
+  };
   addons?: SwiggyAddonGroup[];
   variantsV2?: {
     variantGroups?: SwiggyVariantGroup[];
@@ -376,6 +531,34 @@ type SwiggyMenuItem = {
     pricingModels?: SwiggyPricingModel[];
   };
 };
+
+function menuItemRating(
+  raw: SwiggyMenuItem,
+): { rating: number; ratingCount?: string } | null {
+  const agg = raw.ratings?.aggregatedRating;
+  if (!agg) return null;
+  const ratingRaw = agg.rating;
+  const rating =
+    typeof ratingRaw === 'string' ? parseFloat(ratingRaw) : Number(ratingRaw);
+  if (!Number.isFinite(rating) || rating <= 0) return null;
+  const countRaw = agg.ratingCountV2 ?? agg.ratingCount;
+  const ratingCount =
+    countRaw != null && String(countRaw).trim() !== ''
+      ? String(countRaw).trim()
+      : undefined;
+  return ratingCount ? { rating, ratingCount } : { rating };
+}
+
+function menuItemImageId(raw: SwiggyMenuItem): string {
+  const fromArray = Array.isArray(raw.imageIds)
+    ? String(raw.imageIds.find(Boolean) ?? '').trim()
+    : '';
+  return (
+    String(raw.cloudinaryImageId ?? '').trim() ||
+    String(raw.imageId ?? '').trim() ||
+    fromArray
+  );
+}
 
 function mapChoice(raw: SwiggyChoice): MenuChoice | null {
   const id = String(raw.id ?? '').trim();
@@ -501,11 +684,17 @@ function mapMenuItem(raw: SwiggyMenuItem): MenuItem {
     price,
     isVeg,
   };
-  if (raw.cloudinaryImageId) {
-    item.imageUrl = buildCloudinaryUrl(raw.cloudinaryImageId);
+  const imageKey = menuItemImageId(raw);
+  if (imageKey) {
+    item.imageUrl = buildCloudinaryUrl(imageKey);
   }
   if (isBestseller) {
     item.isBestseller = true;
+  }
+  const dishRating = menuItemRating(raw);
+  if (dishRating) {
+    item.rating = dishRating.rating;
+    if (dishRating.ratingCount) item.ratingCount = dishRating.ratingCount;
   }
   if (variants.length) item.variants = variants;
   if (addons.length) item.addons = addons;
@@ -835,18 +1024,31 @@ function formatClosesAt(raw: unknown): string | undefined {
   }
   const asNum = Number(text);
   if (Number.isFinite(asNum) && asNum > 1e11) {
-    const d = new Date(asNum);
-    if (!Number.isNaN(d.getTime())) {
-      return d
-        .toLocaleTimeString('en-IN', {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true,
-        })
-        .toLowerCase();
-    }
+    const clock = clockFromDate(new Date(asNum));
+    if (clock) return clock;
   }
+  // "2026-10-27 23:00:00" / ISO-ish nextCloseMessage values
+  const datetime = text.match(
+    /^(\d{4}-\d{2}-\d{2})[ T](\d{1,2}:\d{2}(?::\d{2})?)/,
+  );
+  if (datetime) {
+    const clock = clockFromDate(new Date(`${datetime[1]}T${datetime[2]}`));
+    if (clock) return clock;
+  }
+  if (/\d{4}-\d{2}-\d{2}/.test(text)) return undefined;
   return text.length <= 24 ? text : undefined;
+}
+
+function clockFromDate(d: Date): string | undefined {
+  if (Number.isNaN(d.getTime())) return undefined;
+  return d
+    .toLocaleTimeString('en-IN', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    })
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
 }
 
 export function mapMenuResponse(

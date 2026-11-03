@@ -11,15 +11,41 @@ export class RestaurantsController {
   list(
     @Query('lat') lat: string,
     @Query('lng') lng: string,
-    @Query('offset') offset?: string,
+    @Query('nextOffset') nextOffset?: string,
+    @Query('widgetOffset') widgetOffset?: string,
   ) {
-    return this.restaurantsService.listRestaurants(lat, lng, offset);
+    return this.restaurantsService.listRestaurants(
+      lat,
+      lng,
+      nextOffset,
+      widgetOffset,
+    );
   }
 
   /** Time-aware cuisine tiles for landing (Swiggy “mind” widgets / mock slots). */
   @Get('food-categories')
   foodCategories(@Query('lat') lat: string, @Query('lng') lng: string) {
     return this.restaurantsService.listFoodCategories(lat, lng);
+  }
+
+  /** Keyword restaurant search for current deliver-to coordinates. */
+  @Get('search')
+  search(
+    @Query('lat') lat: string,
+    @Query('lng') lng: string,
+    @Query('q') q: string,
+  ) {
+    return this.restaurantsService.searchRestaurants(lat, lng, q);
+  }
+
+  /** As-you-type suggest (Swiggy SUGGEST) for discovery search. */
+  @Get('suggest')
+  suggest(
+    @Query('lat') lat: string,
+    @Query('lng') lng: string,
+    @Query('q') q: string,
+  ) {
+    return this.restaurantsService.suggestRestaurants(lat, lng, q);
   }
 
   @Get(':id/menu')

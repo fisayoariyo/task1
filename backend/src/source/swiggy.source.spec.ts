@@ -79,11 +79,15 @@ describe('SwiggySource', () => {
     expect(geo).toEqual({ lat: 19.07, lng: 72.87 });
   });
 
-  it('listRestaurants calls list/v5 with lat, lng, offset and listing params', async () => {
+  it('listRestaurants first page calls list/v5 homepage listing', async () => {
     http.get.mockReturnValue(
       of(
         axiosResponse({
           data: {
+            pageOffset: {
+              nextOffset: 'CURSOR1',
+              widgetOffset: { collectionV5RestaurantListWidget_SimRestoRelevance_food_seo: '9' },
+            },
             cards: [
               {
                 card: {
@@ -105,21 +109,73 @@ describe('SwiggySource', () => {
         }),
       ),
     );
-    const list = await source.listRestaurants(19.076, 72.877, 15);
+    const page = await source.listRestaurants(19.076, 72.877);
     expect(http.get).toHaveBeenCalledWith(`${BASE}/restaurants/list/v5`, {
       params: {
         lat: 19.076,
         lng: 72.877,
-        offset: 15,
-        sortBy: 'RELEVANCE',
-        pageType: 'SEE_ALL',
-        page_type: 'DESKTOP_SEE_ALL_LISTING',
+        'is-seo-homepage-enabled': 'true',
+        page_type: 'DESKTOP_WEB_LISTING',
       },
       timeout: 8000,
       headers: BROWSER_HEADERS,
     });
-    expect(list[0].id).toBe('97272');
-    expect(list[0].costForTwo).toBe(150);
+    expect(page.restaurants[0].id).toBe('97272');
+    expect(page.restaurants[0].costForTwo).toBe(150);
+    expect(page.nextOffset).toBe('CURSOR1');
+    expect(page.hasMore).toBe(true);
+  });
+
+  it('listRestaurants next page posts mapi list/update with cursor', async () => {
+    http.post.mockReturnValue(
+      of(
+        axiosResponse({
+          data: {
+            pageOffset: { nextOffset: 'CURSOR2', widgetOffset: {} },
+            cards: [
+              {
+                card: {
+                  card: {
+                    info: {
+                      id: '100',
+                      name: 'Next Rest',
+                      cloudinaryImageId: 'img2',
+                      cuisines: ['Indian'],
+                      avgRating: '4.2',
+                      costForTwo: 20000,
+                      sla: { deliveryTime: 30 },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        }),
+      ),
+    );
+    const page = await source.listRestaurants(19.076, 72.877, {
+      nextOffset: 'CURSOR1',
+      widgetOffset: { k: '9' },
+    });
+    expect(http.post).toHaveBeenCalledWith(
+      'https://www.swiggy.com/mapi/restaurants/list/update',
+      {
+        lat: 19.076,
+        lng: 72.877,
+        nextOffset: 'CURSOR1',
+        widgetOffset: { k: '9' },
+        filters: {},
+        page_type: 'DESKTOP_WEB_LISTING',
+      },
+      expect.objectContaining({
+        timeout: 8000,
+        headers: expect.objectContaining({
+          'Content-Type': 'application/json',
+        }),
+      }),
+    );
+    expect(page.restaurants[0].id).toBe('100');
+    expect(page.nextOffset).toBe('CURSOR2');
   });
 
   it('getMenu calls mapi/menu/pl with restaurantId', async () => {
@@ -148,6 +204,97 @@ describe('SwiggySource', () => {
         timeout: 8000,
         headers: BROWSER_HEADERS,
       },
+    );
+  });
+
+  it('maps a non-empty SUGGEST payload to typed items and skips ENTER', async () => {
+    http.get.mockReturnValue(
+      of(
+        axiosResponse({
+          data: {
+            suggestions: [
+              { text: 'Pizza', type: 'DISH' },
+              {
+                text: 'Pizza Hut',
+                type: 'RESTAURANT',
+                restaurantId: '21395',
+              },
+            ],
+          },
+        }),
+      ),
+    );
+    const result = await source.suggestRestaurants(19.076, 72.877, 'piz');
+    expect(result).toEqual({
+      query: 'piz',
+      items: [
+        { kind: 'dish', text: 'Pizza' },
+        { kind: 'restaurant', text: 'Pizza Hut', restaurantId: '21395' },
+      ],
+    });
+    expect(http.get).toHaveBeenCalledTimes(1);
+    expect(http.get).toHaveBeenCalledWith(
+      `${BASE}/restaurants/search/v2_2`,
+      expect.objectContaining({
+        params: expect.objectContaining({
+          str: 'piz',
+          submitAction: 'SUGGEST',
+        }),
+      }),
+    );
+  });
+
+  it('maps an empty SUGGEST fallback ENTER list to restaurant items', async () => {
+    http.get
+      .mockReturnValueOnce(of(axiosResponse({ data: { suggestions: [] } })))
+      .mockReturnValueOnce(
+        of(
+          axiosResponse({
+            data: {
+              cards: [
+                {
+                  card: {
+                    card: {
+                      info: {
+                        id: '99',
+                        name: 'Domino’s Pizza',
+                        cloudinaryImageId: 'dom',
+                        cuisines: ['Pizza'],
+                        avgRating: 4.1,
+                        sla: { deliveryTime: 28 },
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          }),
+        ),
+      );
+    const result = await source.suggestRestaurants(19.076, 72.877, 'piz');
+    expect(result).toEqual({
+      query: 'piz',
+      items: [
+        {
+          kind: 'restaurant',
+          text: 'Domino’s Pizza',
+          restaurantId: '99',
+          imageUrl:
+            'https://media-assets.swiggy.com/swiggy/image/upload/fl_lossy,f_auto,q_auto,w_660/dom',
+        },
+      ],
+    });
+    expect(http.get).toHaveBeenCalledTimes(2);
+    expect(http.get).toHaveBeenNthCalledWith(
+      2,
+      `${BASE}/restaurants/search/v2_2`,
+      expect.objectContaining({
+        params: expect.objectContaining({
+          str: 'piz',
+          submitAction: 'ENTER',
+          selectedPLTab: 'RESTAURANT',
+        }),
+      }),
     );
   });
 

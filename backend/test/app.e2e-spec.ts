@@ -9,6 +9,13 @@ describe('BFF smoke (e2e, DATA_SOURCE=mock)', () => {
   beforeAll(async () => {
     process.env.DATA_SOURCE = 'mock';
     delete process.env.REDIS_URL;
+    // Provide a dummy DATABASE_URL so PrismaService can initialise.
+    // onModuleInit now catches connection errors (warns instead of crashing),
+    // so the BFF boots even without a live Postgres.
+    if (!process.env.DATABASE_URL) {
+      process.env.DATABASE_URL =
+        'postgresql://nomnom:nomnom@localhost:5432/nomnom?schema=public';
+    }
 
     const moduleFixture = await Test.createTestingModule({
       imports: [AppModule],
@@ -47,18 +54,19 @@ describe('BFF smoke (e2e, DATA_SOURCE=mock)', () => {
       });
   });
 
-  it('GET /restaurants returns mock restaurant cards', () => {
+  it('GET /restaurants returns a paged restaurant list', () => {
     return request(app.getHttpServer())
       .get('/restaurants')
       .query({ lat: '19.076', lng: '72.8777' })
       .expect(200)
       .expect((res) => {
-        expect(Array.isArray(res.body)).toBe(true);
-        expect(res.body[0]).toMatchObject({
+        expect(Array.isArray(res.body.restaurants)).toBe(true);
+        expect(res.body.restaurants[0]).toMatchObject({
           id: expect.any(String),
           name: expect.any(String),
           cuisines: expect.any(String),
         });
+        expect(typeof res.body.hasMore).toBe('boolean');
       });
   });
 
