@@ -9,6 +9,9 @@ import {
   MenuPricingModel,
   OpeningHourRow,
   PlaceSuggestion,
+  DishSearchGroup,
+  DishSearchHit,
+  DishSearchResult,
   RestaurantCard,
   RestaurantListPage,
   RestaurantSuggestItem,
@@ -193,6 +196,223 @@ export function mapRestaurantSearchResponse(
   return {
     query: String(query ?? '').trim(),
     restaurants: mapRestaurantListResponse(payload),
+  };
+}
+
+function asRecord(node: unknown): Record<string, unknown> | null {
+  if (!node || typeof node !== 'object' || Array.isArray(node)) return null;
+  return node as Record<string, unknown>;
+}
+
+/** Dish cards carry a price; restaurant cards carry cuisines / costForTwo. */
+function looksLikeDishInfo(info: Record<string, unknown>): boolean {
+  if (info.id == null || !String(info.name ?? '').trim()) return false;
+  return 'price' in info || 'defaultPrice' in info || 'finalPrice' in info;
+}
+
+function readPaise(raw: unknown): number {
+  if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+  if (typeof raw === 'string' && raw.trim()) {
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : 0;
+  }
+  if (raw && typeof raw === 'object') {
+    const obj = raw as Record<string, unknown>;
+    return readPaise(obj.value ?? obj.price);
+  }
+  return 0;
+}
+
+function dishPriceRupees(info: Record<string, unknown>): number {
+  const paise =
+    readPaise(info.finalPrice) ||
+    readPaise(info.defaultPrice) ||
+    readPaise(info.price);
+  return paiseToRupees(paise);
+}
+
+function dishImageUrl(info: Record<string, unknown>): string | undefined {
+  const raw = info.imageId ?? info.cloudinaryImageId ?? info.imageUrl;
+  const id = String(raw ?? '').trim();
+  if (!id) return undefined;
+  const url = buildCloudinaryUrl(id);
+  return url || undefined;
+}
+
+function dishVeg(info: Record<string, unknown>): boolean | undefined {
+  if (info.isVeg === true || info.isVeg === 1) return true;
+  if (info.isVeg === false || info.isVeg === 0) return false;
+  const classifier = String(info.vegClassifier ?? '').toUpperCase();
+  if (!classifier) return undefined;
+  if (classifier.includes('NON')) return false;
+  if (classifier === 'VEG' || classifier === 'PURE_VEG') return true;
+  return undefined;
+}
+
+function positiveNumber(raw: unknown): number | undefined {
+  const n = typeof raw === 'string' ? parseFloat(raw) : Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
+function dishRatingFields(info: Record<string, unknown>): {
+  rating?: number;
+  ratingCount?: string | number;
+} {
+  const ratings = asRecord(info.ratings);
+  const agg = asRecord(ratings?.aggregatedRating) ?? asRecord(info.aggregatedRating);
+  const rating = positiveNumber(agg?.rating ?? info.rating);
+  const countRaw = agg?.ratingCountV2 ?? agg?.ratingCount ?? info.ratingCount;
+  let ratingCount: string | number | undefined;
+  if (typeof countRaw === 'number' && Number.isFinite(countRaw)) {
+    ratingCount = countRaw;
+  } else if (typeof countRaw === 'string' && countRaw.trim()) {
+    ratingCount = countRaw.trim();
+  }
+  return { rating, ratingCount };
+}
+
+function dishIsCustomisable(info: Record<string, unknown>): boolean {
+  if (info.customisable === true || info.isCustomisable === true) return true;
+  if (Array.isArray(info.addons) && info.addons.length > 0) return true;
+  const variants = asRecord(info.variants);
+  if (
+    variants &&
+    Array.isArray(variants.variantGroups) &&
+    variants.variantGroups.length > 0
+  ) {
+    return true;
+  }
+  const variantsV2 = asRecord(info.variantsV2);
+  return Boolean(
+    variantsV2 &&
+      Array.isArray(variantsV2.variantGroups) &&
+      variantsV2.variantGroups.length > 0,
+  );
+}
+
+function toDishHit(info: Record<string, unknown>): DishSearchHit | null {
+  const id = String(info.id ?? '').trim();
+  const name = String(info.name ?? '').trim();
+  if (!id || !name) return null;
+  const hit: DishSearchHit = { id, name, price: dishPriceRupees(info) };
+  const imageUrl = dishImageUrl(info);
+  if (imageUrl) hit.imageUrl = imageUrl;
+  const veg = dishVeg(info);
+  if (veg !== undefined) hit.veg = veg;
+  const { rating, ratingCount } = dishRatingFields(info);
+  if (rating !== undefined) hit.rating = rating;
+  if (ratingCount !== undefined) hit.ratingCount = ratingCount;
+  if (dishIsCustomisable(info)) hit.customisable = true;
+  return hit;
+}
+
+function dishInfoFrom(node: unknown): Record<string, unknown> | null {
+  const rec = asRecord(node);
+  if (!rec) return null;
+  const nested = asRecord(rec.info);
+  if (nested && looksLikeDishInfo(nested)) return nested;
+  if (looksLikeDishInfo(rec)) return rec;
+  return null;
+}
+
+function restaurantMeta(restaurantNode: unknown): {
+  restaurantId: string;
+  restaurantName: string;
+  rating?: number;
+  etaMins?: number;
+} | null {
+  const rec = asRecord(restaurantNode);
+  if (!rec) return null;
+  const info = asRecord(rec.info) ?? rec;
+  if (looksLikeDishInfo(info)) return null;
+  const restaurantId = String(info.id ?? '').trim();
+  const restaurantName = String(info.name ?? '').trim();
+  if (!restaurantId || !restaurantName) return null;
+  const sla = asRecord(info.sla);
+  const etaMins = positiveNumber(
+    sla?.deliveryTime ?? info.deliveryTime ?? info.minDeliveryTime,
+  );
+  const rating = positiveNumber(
+    info.avgRating ?? info.avgRatingString ?? info.rating,
+  );
+  return {
+    restaurantId,
+    restaurantName,
+    ...(rating !== undefined ? { rating } : {}),
+    ...(etaMins !== undefined ? { etaMins: Math.round(etaMins) } : {}),
+  };
+}
+
+/**
+ * ENTER + selectedPLTab=DISH.
+ * Walks dish cards (`info` + sibling `restaurant`) and RestaurantDishGroup
+ * (`restaurant` + `dishes[]`). Prices are Swiggy paise. Synthetic until a
+ * live DISH fixture is captured.
+ */
+export function mapRestaurantDishSearchResponse(
+  payload: unknown,
+  query: string,
+): DishSearchResult {
+  const order: string[] = [];
+  const groups = new Map<string, DishSearchGroup>();
+
+  function addDish(
+    meta: NonNullable<ReturnType<typeof restaurantMeta>>,
+    hit: DishSearchHit,
+  ): void {
+    let group = groups.get(meta.restaurantId);
+    if (!group) {
+      group = {
+        restaurantId: meta.restaurantId,
+        restaurantName: meta.restaurantName,
+        dishes: [],
+      };
+      if (meta.rating !== undefined) group.rating = meta.rating;
+      if (meta.etaMins !== undefined) group.etaMins = meta.etaMins;
+      groups.set(meta.restaurantId, group);
+      order.push(meta.restaurantId);
+    } else {
+      if (group.rating === undefined && meta.rating !== undefined) {
+        group.rating = meta.rating;
+      }
+      if (group.etaMins === undefined && meta.etaMins !== undefined) {
+        group.etaMins = meta.etaMins;
+      }
+    }
+    if (group.dishes.some((dish) => dish.id === hit.id)) return;
+    group.dishes.push(hit);
+  }
+
+  function walk(node: unknown): void {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) {
+      for (const item of node) walk(item);
+      return;
+    }
+    const obj = node as Record<string, unknown>;
+    const meta = restaurantMeta(obj.restaurant);
+    if (meta && Array.isArray(obj.dishes)) {
+      for (const raw of obj.dishes) {
+        const info = dishInfoFrom(raw);
+        const hit = info ? toDishHit(info) : null;
+        if (hit) addDish(meta, hit);
+      }
+    }
+    const info = asRecord(obj.info);
+    if (meta && info && looksLikeDishInfo(info)) {
+      const hit = toDishHit(info);
+      if (hit) addDish(meta, hit);
+    }
+    for (const value of Object.values(obj)) {
+      if (value && typeof value === 'object') walk(value);
+    }
+  }
+
+  walk(payload);
+  return {
+    query: String(query ?? '').trim(),
+    tab: 'dish',
+    groups: order.map((id) => groups.get(id)!),
   };
 }
 

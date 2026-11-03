@@ -5,6 +5,7 @@ import {
   mapMenuResponse,
   mapPlaceAutocomplete,
   mapRestaurantCard,
+  mapRestaurantDishSearchResponse,
   mapRestaurantListResponse,
   mapRestaurantSearchResponse,
   mapRestaurantSuggestResponse,
@@ -231,6 +232,7 @@ describe('mappers', () => {
       };
       const result = mapRestaurantSearchResponse(payload, 'rolls');
       expect(result.query).toBe('rolls');
+      expect(result).not.toHaveProperty('groups');
       expect(result.restaurants).toHaveLength(1);
       expect(result.restaurants[0]).toMatchObject({
         id: '42885',
@@ -239,6 +241,210 @@ describe('mappers', () => {
         etaMins: 25,
         offer: '30% OFF UPTO ₹75',
         totalRatingsString: '1.2K+',
+      });
+    });
+  });
+
+  describe('mapRestaurantDishSearchResponse', () => {
+    it('groups DISH ENTER cards under their restaurants', () => {
+      const payload = {
+        data: {
+          cards: [
+            {
+              groupedCard: {
+                cardGroupMap: {
+                  DISH: {
+                    cards: [
+                      {
+                        card: {
+                          card: {
+                            '@type':
+                              'type.googleapis.com/swiggy.presentation.food.v2.Dish',
+                            info: {
+                              id: '101',
+                              name: 'Chicken Biryani',
+                              price: 24900,
+                              imageId: 'biryani-img',
+                              isVeg: 0,
+                              ratings: {
+                                aggregatedRating: {
+                                  rating: '4.4',
+                                  ratingCountV2: '86',
+                                },
+                              },
+                              addons: [{ groupId: 'g1', groupName: 'Add ons' }],
+                            },
+                            restaurant: {
+                              info: {
+                                id: '555',
+                                name: 'Biryani Blues',
+                                avgRating: '4.2',
+                                sla: { deliveryTime: 31 },
+                              },
+                            },
+                          },
+                        },
+                      },
+                      {
+                        card: {
+                          card: {
+                            info: {
+                              id: '101',
+                              name: 'Chicken Biryani',
+                              price: 24900,
+                              imageId: 'biryani-img',
+                              isVeg: 0,
+                            },
+                            restaurant: {
+                              info: {
+                                id: '555',
+                                name: 'Biryani Blues',
+                                avgRating: '4.2',
+                                sla: { deliveryTime: 31 },
+                              },
+                            },
+                          },
+                        },
+                      },
+                      {
+                        card: {
+                          card: {
+                            info: {
+                              id: '102',
+                              name: 'Veg Biryani',
+                              defaultPrice: 19900,
+                              cloudinaryImageId: 'veg-biryani',
+                              isVeg: 1,
+                            },
+                            restaurant: {
+                              info: {
+                                id: '555',
+                                name: 'Biryani Blues',
+                                avgRating: 4.2,
+                                sla: { deliveryTime: 31 },
+                              },
+                            },
+                          },
+                        },
+                      },
+                      {
+                        card: {
+                          card: {
+                            '@type':
+                              'type.googleapis.com/swiggy.presentation.food.v2.RestaurantDishGroup',
+                            restaurant: {
+                              info: {
+                                id: '777',
+                                name: 'Paradise',
+                                avgRatingString: '4.0',
+                                sla: { deliveryTime: 40 },
+                              },
+                            },
+                            dishes: [
+                              {
+                                info: {
+                                  id: '201',
+                                  name: 'Hyderabadi Biryani',
+                                  price: 32000,
+                                  imageId: 'hyd',
+                                  vegClassifier: 'NONVEG',
+                                  isCustomisable: true,
+                                  ratings: {
+                                    aggregatedRating: {
+                                      rating: 4.6,
+                                      ratingCount: '1.2K+',
+                                    },
+                                  },
+                                },
+                              },
+                            ],
+                          },
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+          ],
+        },
+      };
+
+      expect(mapRestaurantDishSearchResponse(payload, '  biryani  ')).toEqual({
+        query: 'biryani',
+        tab: 'dish',
+        groups: [
+          {
+            restaurantId: '555',
+            restaurantName: 'Biryani Blues',
+            rating: 4.2,
+            etaMins: 31,
+            dishes: [
+              {
+                id: '101',
+                name: 'Chicken Biryani',
+                price: 249,
+                imageUrl: `${CLOUDINARY_BASE}/biryani-img`,
+                veg: false,
+                rating: 4.4,
+                ratingCount: '86',
+                customisable: true,
+              },
+              {
+                id: '102',
+                name: 'Veg Biryani',
+                price: 199,
+                imageUrl: `${CLOUDINARY_BASE}/veg-biryani`,
+                veg: true,
+              },
+            ],
+          },
+          {
+            restaurantId: '777',
+            restaurantName: 'Paradise',
+            rating: 4,
+            etaMins: 40,
+            dishes: [
+              {
+                id: '201',
+                name: 'Hyderabadi Biryani',
+                price: 320,
+                imageUrl: `${CLOUDINARY_BASE}/hyd`,
+                veg: false,
+                rating: 4.6,
+                ratingCount: '1.2K+',
+                customisable: true,
+              },
+            ],
+          },
+        ],
+      });
+    });
+
+    it('does not turn restaurant cards into dish groups', () => {
+      const payload = {
+        data: {
+          cards: [
+            {
+              card: {
+                card: {
+                  info: {
+                    id: '42885',
+                    name: 'Rolls Mania',
+                    cuisines: ['Rolls'],
+                    avgRating: 4.3,
+                    sla: { deliveryTime: 25 },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      };
+      expect(mapRestaurantDishSearchResponse(payload, 'rolls')).toEqual({
+        query: 'rolls',
+        tab: 'dish',
+        groups: [],
       });
     });
   });

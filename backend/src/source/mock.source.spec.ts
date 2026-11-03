@@ -59,6 +59,63 @@ describe('MockSource', () => {
     });
   });
 
+  it('searchRestaurants restaurant tab stays a restaurant list', async () => {
+    const result = await src.searchRestaurants(
+      19.076,
+      72.877,
+      'pizza',
+      'restaurant',
+    );
+    expect(result.tab).toBe('restaurant');
+    expect(result.query).toBe('pizza');
+    expect(result).not.toHaveProperty('groups');
+    if (result.tab === 'restaurant') {
+      expect(result.restaurants.map((r) => r.id)).toEqual([
+        'mock-rest-4',
+        'mock-rest-10',
+      ]);
+    }
+  });
+
+  it('searchRestaurants dish tab groups dishes under matching restaurants', async () => {
+    const result = await src.searchRestaurants(
+      19.076,
+      72.877,
+      'biryani',
+      'dish',
+    );
+    expect(result).toEqual({
+      query: 'biryani',
+      tab: 'dish',
+      groups: [
+        {
+          restaurantId: 'mock-rest-9',
+          restaurantName: 'Behrouz Biryani',
+          rating: 4.4,
+          etaMins: 36,
+          dishes: [
+            {
+              id: 'mock-rest-9-biryani',
+              name: 'Biryani',
+              price: 199,
+              imageUrl:
+                'https://images.unsplash.com/photo-1606491956689-2ea866880c84?w=600&q=80',
+              veg: false,
+            },
+            {
+              id: 'mock-rest-9-biryani-veg',
+              name: 'Veg Biryani',
+              price: 179,
+              imageUrl:
+                'https://images.unsplash.com/photo-1606491956689-2ea866880c84?w=600&q=80',
+              veg: true,
+            },
+          ],
+        },
+      ],
+    });
+  });
+
   it('listFoodCategories returns time-slotted tiles', async () => {
     const dto = await src.listFoodCategories(19.076, 72.877);
     expect(dto.items.length).toBeGreaterThan(0);

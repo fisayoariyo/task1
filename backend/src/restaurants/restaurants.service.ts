@@ -5,9 +5,10 @@ import {
   MenuDto,
   RestaurantListCursor,
   RestaurantListPage,
-  RestaurantSearchResult,
   RestaurantSuggestResult,
   RestaurantSource,
+  SearchResult,
+  SearchTab,
 } from '../source/restaurant-source';
 import { SOURCE } from '../source/source.tokens';
 
@@ -37,6 +38,12 @@ function parseRequiredCoord(raw: string | undefined, name: string): number {
     throw new BadRequestException(`${name} must be a valid number`);
   }
   return value;
+}
+
+function normalizeSearchTab(raw: string | undefined): SearchTab {
+  return String(raw ?? '').trim().toLowerCase() === 'dish'
+    ? 'dish'
+    : 'restaurant';
 }
 
 function parseWidgetOffset(
@@ -121,16 +128,18 @@ export class RestaurantsService {
     latRaw: string,
     lngRaw: string,
     queryRaw: string | undefined,
-  ): Promise<RestaurantSearchResult> {
+    tabRaw?: string,
+  ): Promise<SearchResult> {
     const lat = roundCoord(parseRequiredCoord(latRaw, 'lat'));
     const lng = roundCoord(parseRequiredCoord(lngRaw, 'lng'));
     const query = String(queryRaw ?? '').trim();
     if (query.length < 3) {
       throw new BadRequestException('q must be at least 3 characters');
     }
-    const key = `search:${lat}:${lng}:${query.toLowerCase()}`;
+    const tab = normalizeSearchTab(tabRaw);
+    const key = `search:${lat}:${lng}:${tab}:${query.toLowerCase()}`;
     return this.cached.wrap(key, SEARCH_SOFT_TTL_MS, SEARCH_HARD_TTL_MS, () =>
-      this.source.searchRestaurants(lat, lng, query),
+      this.source.searchRestaurants(lat, lng, query, tab),
     );
   }
 
