@@ -32,8 +32,9 @@ function roundCoord(n) {
   return Math.round(Number(n) * 1000) / 1000
 }
 
-export function restaurantsCacheKey(lat, lng, offset = 0) {
-  return `rest:${roundCoord(lat)}:${roundCoord(lng)}:${Number(offset) || 0}`
+export function restaurantsCacheKey(lat, lng, nextOffset = '') {
+  const cursor = nextOffset ? String(nextOffset) : '0'
+  return `rest:${roundCoord(lat)}:${roundCoord(lng)}:${cursor}`
 }
 
 export function menuCacheKey(id) {
