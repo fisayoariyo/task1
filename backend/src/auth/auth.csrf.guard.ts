@@ -26,7 +26,8 @@ function headerValue(value: HeaderValue): string | undefined {
 export class AuthCsrfGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<CsrfRequest>();
-    if (request.method !== 'POST') {
+    const method = (request.method || 'GET').toUpperCase();
+    if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') {
       return true;
     }
 

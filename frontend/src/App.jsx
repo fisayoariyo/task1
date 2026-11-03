@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import AdminApp from './admin/AdminApp'
 import Checkout from './pages/Checkout'
 import Discovery from './pages/Discovery'
 import DiscoverySearch from './pages/DiscoverySearch'
@@ -19,6 +20,7 @@ export default function App() {
         <Route path="/discovery/search" element={<DiscoverySearch />} />
         <Route path="/restaurant/:id?" element={<Restaurant />} />
         <Route path="/checkout" element={<Checkout />} />
+        <Route path="/admin/*" element={<AdminApp />} />
 
         {/* Old static URLs → clean paths */}
         <Route path="/web/landing.html" element={<Navigate to="/" replace />} />
