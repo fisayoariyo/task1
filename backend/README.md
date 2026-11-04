@@ -6,7 +6,7 @@ Backend-for-frontend for places, restaurant discovery, menus, and cookie-session
 
 - Node.js 20+
 - Redis (optional locally; in-memory cache if `REDIS_URL` is unset)
-- Postgres 16 for auth (Compose service `postgres`, or any server matching `DATABASE_URL`)
+- Postgres 16 for auth (any server matching `DATABASE_URL`)
 
 ## Environment
 
@@ -19,7 +19,7 @@ Copy `.env.example` to `.env` and adjust as needed:
 | `SWIGGY_BASE_URL` | Swiggy dapi URL | Live API base when `DATA_SOURCE=swiggy` |
 | `REDIS_URL` | — | Redis connection; omit for in-memory cache |
 | `CORS_ORIGIN` | `http://localhost:5173` | Allowed browser origins (comma-separated). Also the CSRF `Origin` allowlist |
-| `DATABASE_URL` | — | Postgres connection string. Required for the API (`PrismaService` connects on boot) and for auth e2e. Host example: `postgresql://nomnom:nomnom@localhost:5432/nomnom?schema=public`. The Compose `api` service uses host `postgres` instead of `localhost` |
+| `DATABASE_URL` | — | Postgres connection string. Required for the API (`PrismaService` connects on boot) and for auth e2e. See `.env.example` for a local template |
 
 ## Auth
 
@@ -39,31 +39,14 @@ Clients must send `credentials: 'include'` and `Content-Type: application/json` 
 ```bash
 cd backend
 npm install
-docker compose up -d postgres
+# Ensure Postgres is reachable and DATABASE_URL is set in .env (see .env.example)
 npx prisma migrate deploy
 npm run start:dev
 ```
 
 Health: `GET http://localhost:3001/health`
 
-## Docker Compose (API + Redis + Postgres)
-
-```bash
-cd backend
-docker compose up --build
-```
-
-The API image runs `prisma migrate deploy` before `node dist/main` (`start:prod:migrate`).
-
-Postgres only (user, password, and database `nomnom`, host port `5432`, volume `postgres_data`, `pg_isready` healthcheck):
-
-```bash
-cd backend
-docker compose up -d postgres
-npx prisma migrate deploy
-```
-
-The `api` service sets `DATABASE_URL=postgresql://nomnom:nomnom@postgres:5432/nomnom?schema=public` and waits until Postgres is healthy. From the host, use `localhost` in `DATABASE_URL`, not `postgres`.
+Optional: `docker-compose.yml` can start Postgres / Redis / API if you prefer containers.
 
 ## Tests
 
@@ -76,7 +59,6 @@ Auth e2e uses real Postgres (not SQLite). The suite runs `prisma migrate deploy`
 
 ```bash
 cd backend
-docker compose up -d postgres
 npx prisma migrate deploy
 npm run test:e2e -- --testPathPattern=auth.e2e-spec
 ```
