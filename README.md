@@ -12,18 +12,19 @@ Food delivery web app: **React (Vite)** frontend + **NestJS BFF** for places, re
 
 ## Quick start (full stack)
 
-### 1. Backend (API + Redis)
-
-From the repo root:
+### 1. Backend (API)
 
 ```bash
 cd backend
-docker compose -f docker-compose.yml up --build
+cp .env.example .env   # set DATABASE_URL to a reachable Postgres
+npm install
+npx prisma migrate deploy
+npm run start:dev
 ```
 
-This starts Redis and the API on **http://localhost:3001** with `DATA_SOURCE=mock` (no Swiggy network calls).
+API on **http://localhost:3001** with `DATA_SOURCE=mock` by default (no Swiggy network calls).
 
-For live Swiggy data, set in `backend/.env` or compose overrides:
+For live Swiggy data, set in `backend/.env`:
 
 ```bash
 DATA_SOURCE=swiggy
@@ -33,7 +34,7 @@ CORS_ORIGIN=http://localhost:5173
 
 Health check: `GET http://localhost:3001/health`
 
-See [backend/README.md](backend/README.md) for local `npm run start:dev` without Docker.
+See [backend/README.md](backend/README.md) for env details and optional Compose.
 
 ### 2. Frontend
 
@@ -44,7 +45,7 @@ npm install
 npm run dev
 ```
 
-Set the BFF URL (default matches compose):
+Set the BFF URL:
 
 ```
 VITE_API_URL=http://localhost:3001
@@ -72,7 +73,7 @@ npm test          # unit tests (mock source, no network)
 npm run test:e2e  # HTTP smoke (mock source)
 ```
 
-Frontend: no Vitest in this repo; use manual curl checks in [frontend/README.md](frontend/README.md) or run against compose.
+Frontend: no Vitest in this repo; use manual curl checks in [frontend/README.md](frontend/README.md).
 
 ## Build & deploy
 
@@ -82,14 +83,14 @@ npm run build
 npm run preview
 ```
 
-Vercel builds `frontend/` and serves the SPA from `frontend/dist` (see root `vercel.json`). Host the Nest BFF separately (Docker Compose locally; same image on VPS/Railway/Render for production).
+Vercel builds `frontend/` and serves the SPA from `frontend/dist` (see root `vercel.json`). Host the Nest BFF separately (VPS/Railway/Render, etc.).
 
 ## Project layout
 
 | Path | Purpose |
 |------|---------|
 | `frontend/` | React SPA, `VITE_API_URL`, API client in `src/lib/api.js` |
-| `backend/` | Nest BFF, `docker-compose.yml`, Swiggy/mock sources |
+| `backend/` | Nest BFF, Swiggy/mock sources |
 | `docs/superpowers/specs/` | BFF design spec |
 | `legacy/` | Old static prototype (not used by the app) |
 
